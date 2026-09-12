@@ -1,17 +1,81 @@
-# MUstr
+<p align="center">
+	<img src="assets/MUNI_Time_icon.png" width="144" alt="MUstr calendar logo">
+</p>
 
-An offline timetable and study planner for Masaryk University.
+<h1 align="center">MUstr</h1>
 
-## Getting Started
+<p align="center">
+	An offline schedule viewer and companion for Masaryk University students.
+</p>
 
-This project is a starting point for a Flutter application.
+<p align="center">
+	<a href="https://github.com/D4v31x/MUstr/releases/latest">Download for Android</a>
+	&nbsp;|&nbsp;
+	<a href="https://github.com/D4v31x/MUstr/issues">Report an issue</a>
+	&nbsp;|&nbsp;
+	<a href="LICENSE">Apache-2.0</a>
+</p>
 
-A few resources to get you started if this is your first Flutter project:
+MUstr turns an exported MUNI timetable into a clear, personal schedule you can use without a permanent internet connection. It is designed for quickly checking what is next, browsing your week, keeping course information together, and not missing dates that matter during the semester.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+> MUstr is an independent student project. It is not an official Masaryk University application.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Features
+
+- **Today at a glance**: See current and upcoming classes, room details, and a chronological daily timeline.
+- **Weekly timetable**: Browse an interactive week view with lecture, seminar, and custom event colors.
+- **Semester overview**: Keep semester start/end dates, exam periods, exams, and important milestones in one place.
+- **Important dates**: Add course registration, enrollment changes, tuition deadlines, holidays, or any other key date. Dates can have an optional time, faculty scope, and reminder.
+- **Tasks and courses**: Attach homework, notes, and reminders to imported subjects.
+- **Multiple faculties and schedules**: Import more than one timetable, filter by faculty, or merge an updated XML export into an existing schedule.
+- **Manual classes**: Add a lecture, seminar, or event that is missing from an XML export.
+- **Home-screen widget**: Keep your selected schedule visible from the Android home screen.
+- **Your language and appearance**: Available in English, Czech, and Slovak, with system, light, and dark themes.
+- **In-app updates**: Check and install new Android releases from GitHub when available.
+
+## Get MUstr
+
+1. Open the [latest release](https://github.com/D4v31x/MUstr/releases/latest) on your Android device.
+2. Download the `MUstr-<version>.apk` file.
+3. Open the downloaded APK and allow installation from your browser or file manager when Android asks.
+4. Open MUstr and select your faculty or faculties.
+
+MUstr can also download future releases from its update prompt. Android will always ask for confirmation before installing an update.
+
+## Import Your Schedule
+
+1. In MUNI IS, export your timetable as an XML file.
+2. In MUstr, choose **Import XML** from the menu.
+3. Select the XML file and assign it to the appropriate faculty.
+4. When importing an updated export, choose whether to create a new timetable or merge it into the existing one.
+
+The imported schedule is stored on your device. The app continues to work offline after the import.
+
+## Important Dates and Reminders
+
+Open the **Semester** tab to add the milestones around your schedule:
+
+- Add **exam periods** for each faculty.
+- Add individual **exams**, with a subject, date, time, location, and notes.
+- Add **important dates** such as registration opening, enrollment deadlines, or holidays.
+- Choose an optional time and a reminder for each important date. Timed dates also appear in the Today timeline.
+
+Notifications require Android notification permission. MUstr only schedules reminders that you explicitly create and keeps them on the device.
+
+## Home-Screen Widget
+
+Add the MUstr widget from your Android launcher’s widget picker, then choose the timetable it should show. The widget groups classes by day and reflects the language and schedule data currently stored in MUstr.
+
+## Privacy
+
+Your imported schedules, tasks, notes, exams, and important dates are stored locally on your device. MUstr uses the internet only when you choose to check for or download an app update. It does not require a MUNI account password and does not upload your schedule to a MUstr server.
+
+## Support and Feedback
+
+- [Report a bug](https://github.com/D4v31x/MUstr/issues/new?labels=bug&title=Bug%3A%20)
+- [Suggest an improvement](https://github.com/D4v31x/MUstr/issues/new?labels=feedback&title=Feedback%3A%20)
+- [Browse the source code](https://github.com/D4v31x/MUstr)
+
+## License
+
+MUstr is licensed under the [Apache License 2.0](LICENSE).
