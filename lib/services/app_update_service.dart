@@ -22,6 +22,27 @@ class AppRelease {
   final String notes;
   final Uri apkUrl;
   final String? sha256Digest;
+
+  Map<String, Object?> toJson() => {
+    'version': version,
+    'notes': notes,
+    'apkUrl': apkUrl.toString(),
+    'sha256Digest': sha256Digest,
+  };
+
+  static AppRelease fromJson(Map<String, dynamic> json) => AppRelease(
+    version: json['version']! as String,
+    notes: json['notes'] as String? ?? '',
+    apkUrl: Uri.parse(json['apkUrl']! as String),
+    sha256Digest: json['sha256Digest'] as String?,
+  );
+}
+
+class DownloadedAppRelease {
+  const DownloadedAppRelease({required this.release, required this.apk});
+
+  final AppRelease release;
+  final File apk;
 }
 
 enum ApkInstallResult { started, permissionRequired }
@@ -118,9 +139,11 @@ class AppUpdateService {
         );
       }
 
-      final directory = await getTemporaryDirectory();
+      final directory = await _updateDirectory();
       final file = File('${directory.path}/mustr-${release.version}.apk');
-      sink = file.openWrite();
+      final partial = File('${file.path}.part');
+      if (await partial.exists()) await partial.delete();
+      sink = partial.openWrite();
       var received = 0;
       final total = response.contentLength;
       await for (final chunk in response) {
@@ -133,12 +156,24 @@ class AppUpdateService {
       sink = null;
 
       if (release.sha256Digest case final expected?) {
-        final actual = (await sha256.bind(file.openRead()).first).toString();
+        final actual = (await sha256.bind(partial.openRead()).first).toString();
         if (actual.toLowerCase() != expected) {
-          await file.delete();
+          await partial.delete();
           throw const AppUpdateException(
             'The downloaded APK failed its SHA-256 verification.',
           );
+        }
+      }
+      if (await file.exists()) await file.delete();
+      await partial.rename(file.path);
+      await _metadataFile(
+        directory,
+      ).writeAsString(jsonEncode(release.toJson()), flush: true);
+      await for (final entry in directory.list()) {
+        if (entry is File &&
+            entry.path != file.path &&
+            entry.path != _metadataFile(directory).path) {
+          await entry.delete();
         }
       }
       onProgress(1);
@@ -161,6 +196,60 @@ class AppUpdateService {
         ? ApkInstallResult.permissionRequired
         : ApkInstallResult.started;
   }
+
+  Future<DownloadedAppRelease?> restoreDownloaded() async {
+    if (!Platform.isAndroid) return null;
+    final directory = await _updateDirectory();
+    final metadata = _metadataFile(directory);
+    if (!await metadata.exists()) {
+      await clearDownloaded();
+      return null;
+    }
+    try {
+      final release = AppRelease.fromJson(
+        jsonDecode(await metadata.readAsString()) as Map<String, dynamic>,
+      );
+      final apk = File('${directory.path}/mustr-${release.version}.apk');
+      if (!await apk.exists()) {
+        await metadata.delete();
+        return null;
+      }
+      final current = (await PackageInfo.fromPlatform()).version;
+      if (!isVersionNewer(release.version, current)) {
+        await clearDownloaded();
+        return null;
+      }
+      if (release.sha256Digest case final expected?) {
+        final actual = (await sha256.bind(apk.openRead()).first).toString();
+        if (actual.toLowerCase() != expected) {
+          await clearDownloaded();
+          return null;
+        }
+      }
+      return DownloadedAppRelease(release: release, apk: apk);
+    } catch (_) {
+      await clearDownloaded();
+      return null;
+    }
+  }
+
+  Future<void> clearDownloaded() async {
+    final directory = await _updateDirectory();
+    if (!await directory.exists()) return;
+    await for (final entry in directory.list()) {
+      if (entry is File) await entry.delete();
+    }
+  }
+
+  Future<Directory> _updateDirectory() async {
+    final support = await getApplicationSupportDirectory();
+    final directory = Directory('${support.path}/updates');
+    await directory.create(recursive: true);
+    return directory;
+  }
+
+  File _metadataFile(Directory directory) =>
+      File('${directory.path}/downloaded_release.json');
 }
 
 bool isVersionNewer(String candidate, String current) {

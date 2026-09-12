@@ -44,14 +44,23 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     return data;
   }
 
-  Future<PlannerData> importXml(String xml, String facultyId) async {
+  Future<PlannerData> importXml(
+    String xml,
+    String facultyId, {
+    String? mergeIntoTimetableId,
+  }) async {
     final timetable = _parser.parse(xml, assignedFacultyId: facultyId);
-    await _repository.saveTimetable(timetable, facultyId);
+    if (mergeIntoTimetableId == null) {
+      await _repository.saveTimetable(timetable, facultyId);
+    } else {
+      await _repository.mergeTimetable(mergeIntoTimetableId, timetable);
+    }
     return _refresh();
   }
 
   Future<void> addManualLesson({
     required String timetableId,
+    required String? existingSubjectId,
     required LessonKind kind,
     required String courseCode,
     required String courseName,
@@ -64,19 +73,25 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     final timetable = _currentData.timetables.firstWhere(
       (item) => item.id == timetableId,
     );
-    final normalizedCode = courseCode.trim().isEmpty
-        ? courseName.trim()
-        : courseCode.trim();
-    final subjectKey =
-        'manual:$timetableId:${normalizedCode.toLowerCase().replaceAll(RegExp(r'\s+'), '-')}';
     final facultyId = timetable.assignedFacultyId;
-    final subject = Subject(
-      id: subjectKey,
-      courseCode: normalizedCode,
-      name: courseName.trim(),
-      subjectId: null,
-      faculty: facultyId,
-    );
+    final existingSubject = existingSubjectId == null
+        ? null
+        : timetable.subjects.firstWhere((item) => item.id == existingSubjectId);
+    final normalizedCode =
+        existingSubject?.courseCode ??
+        (courseCode.trim().isEmpty ? courseName.trim() : courseCode.trim());
+    final subjectKey =
+        existingSubject?.id ??
+        'manual:$timetableId:${normalizedCode.toLowerCase().replaceAll(RegExp(r'\s+'), '-')}';
+    final subject =
+        existingSubject ??
+        Subject(
+          id: subjectKey,
+          courseCode: normalizedCode,
+          name: courseName.trim(),
+          subjectId: null,
+          faculty: facultyId,
+        );
     final lesson = Lesson(
       id: _uuid.v4(),
       date: DateTime(startTime.year, startTime.month, startTime.day),
@@ -93,9 +108,9 @@ class PlannerController extends AsyncNotifier<PlannerData> {
           ? LessonPriority.high
           : LessonPriority.normal,
       customColorValue: null,
-      courseName: courseName.trim(),
-      subjectId: null,
-      faculty: facultyId,
+      courseName: subject.name,
+      subjectId: subject.subjectId,
+      faculty: subject.faculty ?? facultyId,
       timetableFacultyId: facultyId,
       semester: timetable.semester,
       rooms: room.trim().isEmpty

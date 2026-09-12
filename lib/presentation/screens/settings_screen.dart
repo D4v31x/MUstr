@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/app_language.dart';
@@ -8,7 +7,7 @@ import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/entities/timetable.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
-import '../widgets/app_update_dialog.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, required this.data});
@@ -143,7 +142,11 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _AboutPanel(
                   subtitle: strings.aboutSubtitle,
-                  onCheckForUpdates: () => checkForAppUpdate(context),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AboutScreen(),
+                    ),
+                  ),
                 ),
               ]),
             ),
@@ -598,25 +601,26 @@ class _GeneralSettings extends StatelessWidget {
 }
 
 class _AboutPanel extends StatelessWidget {
-  const _AboutPanel({required this.subtitle, required this.onCheckForUpdates});
+  const _AboutPanel({required this.subtitle, required this.onPressed});
 
   final String subtitle;
-  final VoidCallback onCheckForUpdates;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.surface,
+    return Material(
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: scheme.outlineVariant),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -644,28 +648,13 @@ class _AboutPanel extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    FutureBuilder<PackageInfo>(
-                      future: PackageInfo.fromPlatform(),
-                      builder: (context, snapshot) => Text(
-                        context.strings.version(
-                          snapshot.data?.version ?? '...',
-                        ),
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: scheme.primary),
-                      ),
-                    ),
                   ],
                 ),
               ),
+              const Icon(Icons.chevron_right_rounded),
             ],
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: onCheckForUpdates,
-            icon: const Icon(Icons.system_update_alt_rounded),
-            label: Text(context.strings.checkForUpdates),
-          ),
-        ],
+        ),
       ),
     );
   }

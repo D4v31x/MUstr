@@ -27,6 +27,7 @@ class PlannerShell extends ConsumerStatefulWidget {
 }
 
 class _PlannerShellState extends ConsumerState<PlannerShell> {
+  static const _newTimetableDestination = '__new_timetable__';
   int _tab = 0;
   String? _facultyFilter;
 
@@ -253,16 +254,16 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
   }
 
   Future<void> _pasteXml() async {
-    final controller = TextEditingController();
+    var pastedXml = '';
     final xml = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(context.strings.pasteTimetableXml),
         content: TextField(
-          controller: controller,
           minLines: 8,
           maxLines: 14,
           autofocus: true,
+          onChanged: (value) => pastedXml = value,
         ),
         actions: [
           TextButton(
@@ -270,39 +271,61 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
             child: Text(context.strings.cancel),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
+            onPressed: () => Navigator.pop(context, pastedXml),
             child: Text(context.strings.import),
           ),
         ],
       ),
     );
-    controller.dispose();
     if (xml != null && xml.trim().isNotEmpty) await _importXml(xml);
   }
 
   Future<void> _importXml(String xml) async {
     try {
-      final facultyId = await _chooseFaculty();
+      final destination = await _chooseImportDestination();
+      if (destination == null) return;
+      final mergeIntoTimetableId = destination == _newTimetableDestination
+          ? null
+          : destination;
+      final planner = ref.read(plannerProvider).value;
+      final target = mergeIntoTimetableId == null
+          ? null
+          : planner?.timetables.firstWhere(
+              (timetable) => timetable.id == mergeIntoTimetableId,
+            );
+      final facultyId = target?.assignedFacultyId ?? await _chooseFaculty();
       if (facultyId == null) return;
       final data = await ref
           .read(plannerProvider.notifier)
-          .importXml(xml, facultyId);
+          .importXml(
+            xml,
+            facultyId,
+            mergeIntoTimetableId: mergeIntoTimetableId,
+          );
       if (!mounted) return;
+      final imported = mergeIntoTimetableId == null
+          ? data.timetables.first
+          : data.timetables.firstWhere(
+              (timetable) => timetable.id == mergeIntoTimetableId,
+            );
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
           icon: const Icon(Icons.task_alt),
-          title: Text(context.strings.timetableImported),
+          title: Text(
+            mergeIntoTimetableId == null
+                ? context.strings.timetableImported
+                : context.strings.timetableMerged,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 context.strings.importSummary(
-                  data.timetables.last.lessons.length,
-                  data.timetables.last.subjects.length,
-                  data.timetables.last.semester ??
-                      context.strings.importedTimetable,
+                  imported.lessons.length,
+                  imported.subjects.length,
+                  imported.semester ?? context.strings.importedTimetable,
                 ),
               ),
               const SizedBox(height: 12),
@@ -329,6 +352,54 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
         SnackBar(content: Text(context.strings.importFailed('$error'))),
       );
     }
+  }
+
+  Future<String?> _chooseImportDestination() async {
+    final data = ref.read(plannerProvider).value;
+    final timetables = data?.timetables ?? const [];
+    if (timetables.isEmpty) return _newTimetableDestination;
+    return showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(context.strings.importDestination),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, _newTimetableDestination),
+            child: Row(
+              children: [
+                const Icon(Icons.add_rounded),
+                const SizedBox(width: 16),
+                Expanded(child: Text(context.strings.importAsNewTimetable)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: Text(
+              context.strings.mergeWithTimetable,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          ...timetables.map(
+            (timetable) => SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, timetable.id),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_month_outlined),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      timetable.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<String?> _chooseFaculty() async {

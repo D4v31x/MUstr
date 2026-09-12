@@ -93,6 +93,7 @@ class AppStrings {
   String get addClassTitle => _text('addClassTitle');
   String get classType => _text('classType');
   String get targetTimetable => _text('targetTimetable');
+  String get createNewSubject => _text('createNewSubject');
   String get courseName => _text('courseName');
   String get courseNameRequired => _text('courseNameRequired');
   String get courseCodeOptional => _text('courseCodeOptional');
@@ -146,6 +147,23 @@ class AppStrings {
   String get useTypeColor => _text('useTypeColor');
   String get about => _text('about');
   String get aboutSubtitle => _text('aboutSubtitle');
+  String get aboutPurposeTitle => _text('aboutPurposeTitle');
+  String get aboutPurposeBody => _text('aboutPurposeBody');
+  String get aboutPrivacyTitle => _text('aboutPrivacyTitle');
+  String get aboutPrivacyBody => _text('aboutPrivacyBody');
+  String get aboutIndependent => _text('aboutIndependent');
+  String get madeBy => _text('madeBy');
+  String get projectSource => _text('projectSource');
+  String get projectSourceSubtitle => _text('projectSourceSubtitle');
+  String get reportIssue => _text('reportIssue');
+  String get reportIssueSubtitle => _text('reportIssueSubtitle');
+  String get sendFeedback => _text('sendFeedback');
+  String get sendFeedbackSubtitle => _text('sendFeedbackSubtitle');
+  String get openSourceLicenses => _text('openSourceLicenses');
+  String get openSourceLicensesSubtitle => _text('openSourceLicensesSubtitle');
+  String get linkOpenFailed => _text('linkOpenFailed');
+  String get easterEggTitle => _text('easterEggTitle');
+  String get easterEggBody => _text('easterEggBody');
   String version(String value) => _format('version', value);
   String get manageTimetables => _text('manageTimetables');
   String get manageTimetablesSubtitle => _text('manageTimetablesSubtitle');
@@ -193,6 +211,10 @@ class AppStrings {
   String get muniFaculty => _text('muniFaculty');
   String get chooseFaculty => _text('chooseFaculty');
   String get timetableImported => _text('timetableImported');
+  String get timetableMerged => _text('timetableMerged');
+  String get importDestination => _text('importDestination');
+  String get importAsNewTimetable => _text('importAsNewTimetable');
+  String get mergeWithTimetable => _text('mergeWithTimetable');
   String get timetableEmpty => _text('timetableEmpty');
   String get timetableEmptyDescription => _text('timetableEmptyDescription');
   String get noTimetableForFaculty => _text('noTimetableForFaculty');
@@ -254,6 +276,27 @@ class AppStrings {
       'useTypeColor': 'Use type color',
       'about': 'ABOUT',
       'aboutSubtitle': 'Your offline planner for Masaryk University.',
+      'aboutPurposeTitle': 'Built for student life',
+      'aboutPurposeBody':
+          'MUstr turns exported MUNI timetables into a practical offline schedule with classes, tasks, exams, reminders, and a home-screen widget.',
+      'aboutPrivacyTitle': 'Private by design',
+      'aboutPrivacyBody':
+          'Your timetable and study data stay on this device. MUstr only connects to GitHub when checking for app updates or when you open a project link.',
+      'aboutIndependent':
+          'MUstr is an independent student project and is not an official Masaryk University application.',
+      'madeBy': 'Made by D4v31x',
+      'projectSource': 'Source code',
+      'projectSourceSubtitle': 'View the project on GitHub',
+      'reportIssue': 'Report a problem',
+      'reportIssueSubtitle': 'Open a bug report on GitHub',
+      'sendFeedback': 'Share feedback or an idea',
+      'sendFeedbackSubtitle': 'Suggest an improvement on GitHub',
+      'openSourceLicenses': 'Open-source licenses',
+      'openSourceLicensesSubtitle': 'Libraries and fonts used by MUstr',
+      'linkOpenFailed': 'Could not open the link.',
+      'easterEggTitle': 'Schedule diagnostics',
+      'easterEggBody':
+          'Seven taps detected. Unfortunately, no free Friday was found.',
       'version': 'Version {value}',
       'manageTimetables': 'TIMETABLES',
       'manageTimetablesSubtitle': 'Review or remove imported schedules.',
@@ -304,6 +347,10 @@ class AppStrings {
       'muniFaculty': 'MUNI faculty',
       'chooseFaculty': 'Assign timetable to faculty',
       'timetableImported': 'Timetable imported',
+      'timetableMerged': 'Timetable merged',
+      'importDestination': 'Where should the XML be imported?',
+      'importAsNewTimetable': 'Create a new timetable',
+      'mergeWithTimetable': 'Merge with an existing timetable',
       'timetableEmpty': 'Your timetable is empty',
       'timetableEmptyDescription':
           'Import your timetable from MUNI IS to get started.',
@@ -402,6 +449,7 @@ class AppStrings {
       'addClassTitle': 'Add to schedule',
       'classType': 'Class type',
       'targetTimetable': 'Timetable',
+      'createNewSubject': 'Create new subject',
       'courseName': 'Course name',
       'courseNameRequired': 'Enter a course name.',
       'courseCodeOptional': 'Course code (optional)',
@@ -454,6 +502,27 @@ class AppStrings {
       'useTypeColor': 'Použít barvu typu',
       'about': 'O APLIKACI',
       'aboutSubtitle': 'Váš offline plánovač pro Masarykovu univerzitu.',
+      'aboutPurposeTitle': 'Pro každodenní studentský život',
+      'aboutPurposeBody':
+          'MUstr promění exportovaný rozvrh MU v praktický offline plánovač s výukou, úkoly, zkouškami, připomínkami a widgetem na plochu.',
+      'aboutPrivacyTitle': 'Soukromí na prvním místě',
+      'aboutPrivacyBody':
+          'Rozvrh a studijní data zůstávají v tomto zařízení. MUstr se připojuje ke GitHubu pouze při kontrole aktualizací nebo otevření odkazu projektu.',
+      'aboutIndependent':
+          'MUstr je nezávislý studentský projekt a není oficiální aplikací Masarykovy univerzity.',
+      'madeBy': 'Vytvořil D4v31x',
+      'projectSource': 'Zdrojový kód',
+      'projectSourceSubtitle': 'Zobrazit projekt na GitHubu',
+      'reportIssue': 'Nahlásit problém',
+      'reportIssueSubtitle': 'Vytvořit hlášení chyby na GitHubu',
+      'sendFeedback': 'Poslat zpětnou vazbu nebo nápad',
+      'sendFeedbackSubtitle': 'Navrhnout vylepšení na GitHubu',
+      'openSourceLicenses': 'Open-source licence',
+      'openSourceLicensesSubtitle': 'Knihovny a písma použité v MUstr',
+      'linkOpenFailed': 'Odkaz se nepodařilo otevřít.',
+      'easterEggTitle': 'Diagnostika rozvrhu',
+      'easterEggBody':
+          'Zjištěno sedm klepnutí. Volný pátek se bohužel nenašel.',
       'version': 'Verze {value}',
       'manageTimetables': 'ROZVRHY',
       'manageTimetablesSubtitle':
@@ -505,6 +574,10 @@ class AppStrings {
       'muniFaculty': 'Fakulta MU',
       'chooseFaculty': 'Přiřadit rozvrh k fakultě',
       'timetableImported': 'Rozvrh importován',
+      'timetableMerged': 'Rozvrhy byly sloučeny',
+      'importDestination': 'Kam chcete XML importovat?',
+      'importAsNewTimetable': 'Vytvořit nový rozvrh',
+      'mergeWithTimetable': 'Sloučit s existujícím rozvrhem',
       'timetableEmpty': 'Váš rozvrh je prázdný',
       'timetableEmptyDescription': 'Začněte importem rozvrhu z IS MU.',
       'noTimetableForFaculty': 'Pro tuto fakultu není rozvrh',
@@ -602,6 +675,7 @@ class AppStrings {
       'addClassTitle': 'Přidat do rozvrhu',
       'classType': 'Typ výuky',
       'targetTimetable': 'Rozvrh',
+      'createNewSubject': 'Vytvořit nový předmět',
       'courseName': 'Název předmětu',
       'courseNameRequired': 'Zadejte název předmětu.',
       'courseCodeOptional': 'Kód předmětu (volitelné)',
@@ -654,6 +728,27 @@ class AppStrings {
       'useTypeColor': 'Použiť farbu typu',
       'about': 'O APLIKÁCII',
       'aboutSubtitle': 'Váš offline plánovač pre Masarykovu univerzitu.',
+      'aboutPurposeTitle': 'Pre každodenný študentský život',
+      'aboutPurposeBody':
+          'MUstr premení exportovaný rozvrh MU na praktický offline plánovač s výučbou, úlohami, skúškami, pripomienkami a widgetom na plochu.',
+      'aboutPrivacyTitle': 'Súkromie na prvom mieste',
+      'aboutPrivacyBody':
+          'Rozvrh a študijné údaje zostávajú v tomto zariadení. MUstr sa pripája ku GitHubu iba pri kontrole aktualizácií alebo otvorení odkazu projektu.',
+      'aboutIndependent':
+          'MUstr je nezávislý študentský projekt a nie je oficiálnou aplikáciou Masarykovej univerzity.',
+      'madeBy': 'Vytvoril D4v31x',
+      'projectSource': 'Zdrojový kód',
+      'projectSourceSubtitle': 'Zobraziť projekt na GitHube',
+      'reportIssue': 'Nahlásiť problém',
+      'reportIssueSubtitle': 'Vytvoriť hlásenie chyby na GitHube',
+      'sendFeedback': 'Poslať spätnú väzbu alebo nápad',
+      'sendFeedbackSubtitle': 'Navrhnúť vylepšenie na GitHube',
+      'openSourceLicenses': 'Open-source licencie',
+      'openSourceLicensesSubtitle': 'Knižnice a písma použité v MUstr',
+      'linkOpenFailed': 'Odkaz sa nepodarilo otvoriť.',
+      'easterEggTitle': 'Diagnostika rozvrhu',
+      'easterEggBody':
+          'Zistených sedem ťuknutí. Voľný piatok sa, žiaľ, nenašiel.',
       'version': 'Verzia {value}',
       'manageTimetables': 'ROZVRHY',
       'manageTimetablesSubtitle':
@@ -705,6 +800,10 @@ class AppStrings {
       'muniFaculty': 'Fakulta MU',
       'chooseFaculty': 'Priradiť rozvrh k fakulte',
       'timetableImported': 'Rozvrh importovaný',
+      'timetableMerged': 'Rozvrhy boli zlúčené',
+      'importDestination': 'Kam chcete XML importovať?',
+      'importAsNewTimetable': 'Vytvoriť nový rozvrh',
+      'mergeWithTimetable': 'Zlúčiť s existujúcim rozvrhom',
       'timetableEmpty': 'Váš rozvrh je prázdny',
       'timetableEmptyDescription': 'Začnite importom rozvrhu z IS MU.',
       'noTimetableForFaculty': 'Pre túto fakultu nie je rozvrh',
@@ -802,6 +901,7 @@ class AppStrings {
       'addClassTitle': 'Pridať do rozvrhu',
       'classType': 'Typ výučby',
       'targetTimetable': 'Rozvrh',
+      'createNewSubject': 'Vytvoriť nový predmet',
       'courseName': 'Názov predmetu',
       'courseNameRequired': 'Zadajte názov predmetu.',
       'courseCodeOptional': 'Kód predmetu (voliteľné)',

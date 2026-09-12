@@ -281,6 +281,74 @@ class SqlitePlannerRepository implements PlannerRepository {
   }
 
   @override
+  Future<void> mergeTimetable(String timetableId, Timetable imported) async {
+    final db = await _db;
+    await db.transaction((transaction) async {
+      final target = await transaction.query(
+        'timetables',
+        columns: ['id'],
+        where: 'id = ?',
+        whereArgs: [timetableId],
+        limit: 1,
+      );
+      if (target.isEmpty) {
+        throw StateError('The selected timetable no longer exists.');
+      }
+      for (final subject in imported.subjects) {
+        await transaction.insert('subjects', {
+          'id': subject.id,
+          'course_code': subject.courseCode,
+          'name': subject.name,
+          'subject_id': subject.subjectId,
+          'faculty': subject.faculty,
+          'notes': subject.notes,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        await transaction.update(
+          'subjects',
+          {
+            'course_code': subject.courseCode,
+            'name': subject.name,
+            'subject_id': subject.subjectId,
+            'faculty': subject.faculty,
+          },
+          where: 'id = ?',
+          whereArgs: [subject.id],
+        );
+        await transaction.insert('timetable_subjects', {
+          'timetable_id': timetableId,
+          'subject_id': subject.id,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+      for (final lesson in imported.lessons) {
+        final duplicate = await transaction.query(
+          'lessons',
+          columns: ['id'],
+          where:
+              'timetable_id = ? AND start_at = ? AND end_at = ? AND subject_key = ? AND rooms = ?',
+          whereArgs: [
+            timetableId,
+            lesson.startTime.toIso8601String(),
+            lesson.endTime.toIso8601String(),
+            lesson.subjectKey,
+            jsonEncode(
+              lesson.rooms
+                  .map((room) => {'id': room.id, 'name': room.name})
+                  .toList(),
+            ),
+          ],
+          limit: 1,
+        );
+        if (duplicate.isEmpty) {
+          await transaction.insert(
+            'lessons',
+            _lessonToRow(lesson, timetableId),
+          );
+        }
+      }
+    });
+  }
+
+  @override
   Future<void> addLesson(
     String timetableId,
     Lesson lesson,

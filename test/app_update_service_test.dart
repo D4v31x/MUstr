@@ -20,4 +20,20 @@ void main() {
       expect(isVersionNewer('1.2.3-beta.1', '1.2.3'), isFalse);
     });
   });
+
+  test('AppRelease metadata round-trips for persistent downloads', () {
+    final release = AppRelease(
+      version: '1.2.3',
+      notes: 'Release notes',
+      apkUrl: Uri.parse('https://example.invalid/MUstr-1.2.3.apk'),
+      sha256Digest: 'abc123',
+    );
+
+    final restored = AppRelease.fromJson(release.toJson());
+
+    expect(restored.version, release.version);
+    expect(restored.notes, release.notes);
+    expect(restored.apkUrl, release.apkUrl);
+    expect(restored.sha256Digest, release.sha256Digest);
+  });
 }

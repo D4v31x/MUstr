@@ -30,8 +30,10 @@ class _LessonEditor extends ConsumerStatefulWidget {
 }
 
 class _LessonEditorState extends ConsumerState<_LessonEditor> {
+  static const _newSubject = '__new_subject__';
   final _formKey = GlobalKey<FormState>();
   late String _timetableId;
+  String _subjectChoice = _newSubject;
   LessonKind _kind = LessonKind.lecture;
   DateTime _date = DateTime.now();
   TimeOfDay _start = const TimeOfDay(hour: 9, minute: 0);
@@ -57,6 +59,9 @@ class _LessonEditorState extends ConsumerState<_LessonEditor> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final timetable = widget.data.timetables.firstWhere(
+      (item) => item.id == _timetableId,
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -116,25 +121,52 @@ class _LessonEditorState extends ConsumerState<_LessonEditor> {
                       ),
                     )
                     .toList(),
-                onChanged: (value) => setState(() => _timetableId = value!),
+                onChanged: (value) => setState(() {
+                  _timetableId = value!;
+                  _subjectChoice = _newSubject;
+                }),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                autofocus: true,
-                decoration: InputDecoration(labelText: strings.courseName),
-                onChanged: (value) => _courseName = value,
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? strings.courseNameRequired
-                    : null,
+              DropdownButtonFormField<String>(
+                key: ValueKey(_timetableId),
+                initialValue: _subjectChoice,
+                decoration: InputDecoration(labelText: strings.subject),
+                items: [
+                  DropdownMenuItem(
+                    value: _newSubject,
+                    child: Text(strings.createNewSubject),
+                  ),
+                  ...timetable.subjects.map(
+                    (subject) => DropdownMenuItem(
+                      value: subject.id,
+                      child: Text(
+                        '${subject.courseCode} - ${subject.name}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+                onChanged: (value) => setState(() => _subjectChoice = value!),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: strings.courseCodeOptional,
+              if (_subjectChoice == _newSubject) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  autofocus: true,
+                  decoration: InputDecoration(labelText: strings.courseName),
+                  onChanged: (value) => _courseName = value,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? strings.courseNameRequired
+                      : null,
                 ),
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (value) => _courseCode = value,
-              ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: strings.courseCodeOptional,
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (value) => _courseCode = value,
+                ),
+              ],
               if (_kind == LessonKind.seminar) ...[
                 const SizedBox(height: 12),
                 TextFormField(
@@ -245,6 +277,9 @@ class _LessonEditorState extends ConsumerState<_LessonEditor> {
           .read(plannerProvider.notifier)
           .addManualLesson(
             timetableId: _timetableId,
+            existingSubjectId: _subjectChoice == _newSubject
+                ? null
+                : _subjectChoice,
             kind: _kind,
             courseCode: _courseCode,
             courseName: _courseName,

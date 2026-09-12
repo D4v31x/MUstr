@@ -178,6 +178,7 @@ void main() {
         .read(plannerProvider.notifier)
         .addManualLesson(
           timetableId: timetable.id,
+          existingSubjectId: null,
           kind: LessonKind.seminar,
           courseCode: 'PB151',
           courseName: 'Computer Systems',
@@ -196,6 +197,91 @@ void main() {
     expect(lesson.teachers.single.name, 'Ada Lovelace');
     expect(result.timetable!.lessons.single.id, lesson.id);
     expect(result.subjects.single.courseCode, 'PB151');
+  });
+
+  test('manual class can reuse an existing subject', () async {
+    final repository = _FakeRepository();
+    final timetable = Timetable(
+      id: 'fall-2026-fi',
+      name: 'Fall 2026',
+      assignedFacultyId: 'fi',
+      semester: 'Fall 2026',
+      importedAt: DateTime(2026, 9, 1),
+      lessons: const [],
+      subjects: repository.data.subjects,
+    );
+    repository.data = repository.data.withTimetables([timetable]);
+    final container = ProviderContainer(
+      overrides: [
+        plannerRepositoryProvider.overrideWithValue(repository),
+        reminderSchedulerProvider.overrideWithValue(_FakeScheduler()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(plannerProvider.future);
+
+    await container
+        .read(plannerProvider.notifier)
+        .addManualLesson(
+          timetableId: timetable.id,
+          existingSubjectId: '1726907',
+          kind: LessonKind.lecture,
+          courseCode: '',
+          courseName: '',
+          seminarGroup: null,
+          startTime: DateTime(2026, 9, 22, 8),
+          endTime: DateTime(2026, 9, 22, 9, 40),
+          room: '',
+          teacher: '',
+        );
+
+    final lesson = container
+        .read(plannerProvider)
+        .requireValue
+        .timetables
+        .single
+        .lessons
+        .single;
+    expect(lesson.subjectKey, '1726907');
+    expect(lesson.subjectId, '1726907');
+    expect(lesson.courseCode, 'PB151');
+    expect(lesson.courseName, 'Výpočetní systémy');
+  });
+
+  test('merging the same XML twice does not duplicate classes', () async {
+    final repository = _FakeRepository();
+    final timetable = Timetable(
+      id: 'fall-2026-fi',
+      name: 'Fall 2026',
+      assignedFacultyId: 'fi',
+      semester: 'podzim2026',
+      importedAt: DateTime(2026, 9, 1),
+      lessons: const [],
+      subjects: const [],
+    );
+    repository.data = repository.data.withTimetables([timetable]);
+    final container = ProviderContainer(
+      overrides: [
+        plannerRepositoryProvider.overrideWithValue(repository),
+        reminderSchedulerProvider.overrideWithValue(_FakeScheduler()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(plannerProvider.future);
+    const xml = '''
+<rozvrh><tabulka><den id="Po 14. 9."><radek>
+<slot odcas="09:00" docas="10:00"><akce><kod>IB111</kod><nazev>Základy programování</nazev><predmetid>1726815</predmetid><fakulta_url>fi</fakulta_url><obdobi_url>podzim2026</obdobi_url></akce></slot>
+</radek></den></tabulka></rozvrh>
+''';
+    final controller = container.read(plannerProvider.notifier);
+
+    await controller.importXml(xml, 'fi', mergeIntoTimetableId: timetable.id);
+    await controller.importXml(xml, 'fi', mergeIntoTimetableId: timetable.id);
+
+    final result = container.read(plannerProvider).requireValue;
+    expect(result.timetables.single.lessons, hasLength(1));
+    expect(result.timetables.single.subjects, hasLength(1));
+    expect(result.timetables.single.lessons.single.courseCode, 'IB111');
   });
 
   test('deleting a subject retains its tasks as unassigned', () async {
@@ -288,6 +374,37 @@ class _FakeRepository implements PlannerRepository {
         subjects: timetable.subjects,
         tasks: data.tasks,
       );
+
+  @override
+  Future<void> mergeTimetable(String timetableId, Timetable imported) async {
+    data = data.withTimetables(
+      data.timetables.map((timetable) {
+        if (timetable.id != timetableId) return timetable;
+        final signatures = timetable.lessons.map(_lessonSignature).toSet();
+        return Timetable(
+          id: timetable.id,
+          name: timetable.name,
+          assignedFacultyId: timetable.assignedFacultyId,
+          semester: timetable.semester,
+          importedAt: timetable.importedAt,
+          lessons: [
+            ...timetable.lessons,
+            ...imported.lessons.where(
+              (lesson) => signatures.add(_lessonSignature(lesson)),
+            ),
+          ],
+          subjects: [
+            ...timetable.subjects,
+            ...imported.subjects.where(
+              (subject) => !timetable.subjects.any(
+                (existing) => existing.id == subject.id,
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
 
   @override
   Future<void> addLesson(
@@ -471,6 +588,13 @@ class _FakeRepository implements PlannerRepository {
     showRoomInSchedule: showRoomInSchedule ?? data.showRoomInSchedule,
     highlightCurrentDay: highlightCurrentDay ?? data.highlightCurrentDay,
   );
+
+  String _lessonSignature(Lesson lesson) => [
+    lesson.startTime.toIso8601String(),
+    lesson.endTime.toIso8601String(),
+    lesson.subjectKey,
+    lesson.rooms.map((room) => room.id ?? room.name).join('|'),
+  ].join('#');
 }
 
 class _FakeScheduler implements ReminderScheduler {

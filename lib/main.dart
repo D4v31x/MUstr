@@ -9,14 +9,16 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'domain/entities/app_language.dart';
 import 'presentation/providers/planner_providers.dart';
 import 'presentation/screens/planner_shell.dart';
+import 'presentation/widgets/app_update_dialog.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
   LicenseRegistry.addLicense(() async* {
     final license = await rootBundle.loadString('assets/google_fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(const ['Figtree'], license);
   });
+  await appUpdateController.initialize();
   runApp(const ProviderScope(child: MuniPlannerApp()));
 }
 
@@ -48,6 +50,7 @@ class MuniPlannerApp extends ConsumerWidget {
         locale: language.locale,
         supportedLocales: AppLanguage.values.map((language) => language.locale),
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        builder: (context, child) => AppUpdateHost(child: child!),
         theme: _theme(Brightness.light),
         darkTheme: _theme(Brightness.dark),
         home: const PlannerShell(),

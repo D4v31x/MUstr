@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,159 +8,307 @@ import '../localization/app_strings.dart';
 
 const _updateService = AppUpdateService();
 
+final appUpdateController = AppUpdateController();
+
+enum AppUpdatePhase {
+  idle,
+  checking,
+  available,
+  downloading,
+  downloaded,
+  installing,
+  current,
+  error,
+}
+
+class AppUpdateController extends ChangeNotifier {
+  AppUpdatePhase phase = AppUpdatePhase.idle;
+  AppRelease? release;
+  File? apk;
+  double progress = 0;
+  String? error;
+  bool _initialized = false;
+  Future<void>? _downloadOperation;
+  Timer? _hideTimer;
+
+  bool get visible => phase != AppUpdatePhase.idle;
+
+  Future<void> initialize() async {
+    if (_initialized) return;
+    _initialized = true;
+    final downloaded = await _updateService.restoreDownloaded();
+    if (downloaded != null) {
+      release = downloaded.release;
+      apk = downloaded.apk;
+      progress = 1;
+      phase = AppUpdatePhase.downloaded;
+      notifyListeners();
+    }
+  }
+
+  Future<void> check({
+    bool silentWhenCurrent = false,
+    bool silentOnError = false,
+  }) async {
+    if (phase == AppUpdatePhase.downloading ||
+        phase == AppUpdatePhase.installing) {
+      return;
+    }
+    if (phase == AppUpdatePhase.downloaded) return;
+    _hideTimer?.cancel();
+    final fullySilent = silentWhenCurrent && silentOnError;
+    if (!fullySilent) phase = AppUpdatePhase.checking;
+    error = null;
+    if (!fullySilent) notifyListeners();
+    try {
+      final available = await _updateService.check();
+      if (available == null) {
+        phase = silentWhenCurrent
+            ? AppUpdatePhase.idle
+            : AppUpdatePhase.current;
+        notifyListeners();
+        if (!silentWhenCurrent) _hideLater();
+        return;
+      }
+      release = available;
+      phase = AppUpdatePhase.available;
+      notifyListeners();
+    } catch (exception) {
+      if (silentOnError) {
+        phase = AppUpdatePhase.idle;
+      } else {
+        error = exception.toString();
+        phase = AppUpdatePhase.error;
+      }
+      notifyListeners();
+    }
+  }
+
+  Future<void> download() {
+    final existing = _downloadOperation;
+    if (existing != null) return existing;
+    final target = release;
+    if (target == null) return Future.value();
+    final operation = _download(target);
+    _downloadOperation = operation;
+    return operation.whenComplete(() => _downloadOperation = null);
+  }
+
+  Future<void> _download(AppRelease target) async {
+    _hideTimer?.cancel();
+    phase = AppUpdatePhase.downloading;
+    progress = 0;
+    error = null;
+    notifyListeners();
+    try {
+      apk = await _updateService.download(
+        target,
+        onProgress: (value) {
+          progress = value;
+          notifyListeners();
+        },
+      );
+      progress = 1;
+      phase = AppUpdatePhase.downloaded;
+      notifyListeners();
+    } catch (exception) {
+      error = exception.toString();
+      phase = AppUpdatePhase.error;
+      notifyListeners();
+    }
+  }
+
+  Future<void> install() async {
+    final file = apk;
+    if (file == null || !await file.exists()) {
+      apk = null;
+      phase = AppUpdatePhase.available;
+      notifyListeners();
+      return;
+    }
+    phase = AppUpdatePhase.installing;
+    error = null;
+    notifyListeners();
+    try {
+      final result = await _updateService.install(file);
+      if (result == ApkInstallResult.permissionRequired) {
+        error = 'permission_required';
+      }
+      // Keep the APK until a later launch confirms the new version installed.
+      phase = AppUpdatePhase.downloaded;
+      notifyListeners();
+    } catch (exception) {
+      error = exception.toString();
+      phase = AppUpdatePhase.error;
+      notifyListeners();
+    }
+  }
+
+  void dismiss() {
+    if (phase == AppUpdatePhase.downloading ||
+        phase == AppUpdatePhase.installing ||
+        phase == AppUpdatePhase.downloaded) {
+      return;
+    }
+    phase = AppUpdatePhase.idle;
+    notifyListeners();
+  }
+
+  void _hideLater() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 4), () {
+      if (phase == AppUpdatePhase.current) {
+        phase = AppUpdatePhase.idle;
+        notifyListeners();
+      }
+    });
+  }
+}
+
 Future<void> checkForAppUpdate(
   BuildContext context, {
   bool silentWhenCurrent = false,
   bool silentOnError = false,
-}) async {
-  try {
-    final release = await _updateService.check();
-    if (!context.mounted) return;
-    if (release == null) {
-      if (!silentWhenCurrent) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.strings.updateCurrent)));
-      }
-      return;
-    }
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _AppUpdateDialog(release: release),
-    );
-  } catch (error) {
-    if (!context.mounted || silentOnError) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${context.strings.updateFailed} $error')),
-    );
-  }
-}
+}) => appUpdateController.check(
+  silentWhenCurrent: silentWhenCurrent,
+  silentOnError: silentOnError,
+);
 
-class _AppUpdateDialog extends StatefulWidget {
-  const _AppUpdateDialog({required this.release});
-
-  final AppRelease release;
+class AppUpdateStatusBar extends StatelessWidget {
+  const AppUpdateStatusBar({super.key});
 
   @override
-  State<_AppUpdateDialog> createState() => _AppUpdateDialogState();
-}
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: appUpdateController,
+    builder: (context, _) {
+      final controller = appUpdateController;
+      if (!controller.visible) return const SizedBox.shrink();
+      final strings = context.strings;
+      final scheme = Theme.of(context).colorScheme;
+      final release = controller.release;
+      final phase = controller.phase;
 
-class _AppUpdateDialogState extends State<_AppUpdateDialog> {
-  double? _progress;
-  File? _apk;
-  String? _error;
-  bool _busy = false;
-
-  Future<void> _download() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-      _progress = 0;
-    });
-    try {
-      final apk = await _updateService.download(
-        widget.release,
-        onProgress: (progress) {
-          if (mounted) setState(() => _progress = progress);
-        },
-      );
-      if (!mounted) return;
-      setState(() {
-        _apk = apk;
-        _busy = false;
-        _progress = 1;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = error.toString();
-      });
-    }
-  }
-
-  Future<void> _install() async {
-    final apk = _apk;
-    if (apk == null) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final result = await _updateService.install(apk);
-      if (!mounted) return;
-      if (result == ApkInstallResult.permissionRequired) {
-        setState(() {
-          _busy = false;
-          _error = context.strings.updatePermission;
-        });
-      } else {
-        Navigator.of(context).pop();
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = error.toString();
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = context.strings;
-    final downloaded = _apk != null;
-    return AlertDialog(
-      icon: const Icon(Icons.system_update_alt_rounded),
-      title: Text(strings.updateAvailable),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(strings.updateVersion(widget.release.version)),
-            if (widget.release.notes.trim().isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(widget.release.notes.trim()),
-            ],
-            if (_progress case final progress?) ...[
-              const SizedBox(height: 20),
-              LinearProgressIndicator(value: progress == 0 ? null : progress),
-              const SizedBox(height: 8),
-              Text(
-                downloaded
-                    ? strings.updateReady
-                    : '${strings.updateDownloading} ${(progress * 100).round()}%',
-              ),
-            ],
-            if (_error case final error?) ...[
-              const SizedBox(height: 16),
-              Text(
-                error,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-          ],
+      final (icon, label) = switch (phase) {
+        AppUpdatePhase.checking => (
+          Icons.sync_rounded,
+          strings.checkingForUpdates,
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: Text(strings.updateLater),
+        AppUpdatePhase.available => (
+          Icons.system_update_alt_rounded,
+          release == null
+              ? strings.updateAvailable
+              : strings.updateVersion(release.version),
         ),
-        FilledButton.icon(
-          onPressed: _busy
-              ? null
-              : downloaded
-              ? _install
-              : _download,
-          icon: Icon(
-            downloaded ? Icons.install_mobile_rounded : Icons.download_rounded,
+        AppUpdatePhase.downloading => (
+          Icons.download_rounded,
+          '${strings.updateDownloading} ${(controller.progress * 100).round()}%',
+        ),
+        AppUpdatePhase.downloaded => (
+          Icons.install_mobile_rounded,
+          controller.error == 'permission_required'
+              ? strings.updatePermission
+              : strings.updateReady,
+        ),
+        AppUpdatePhase.installing => (
+          Icons.install_mobile_rounded,
+          strings.updateInstall,
+        ),
+        AppUpdatePhase.current => (
+          Icons.check_circle_outline_rounded,
+          strings.updateCurrent,
+        ),
+        AppUpdatePhase.error => (
+          Icons.error_outline_rounded,
+          controller.error ?? strings.updateFailed,
+        ),
+        AppUpdatePhase.idle => (Icons.info_outline, ''),
+      };
+
+      final progress = phase == AppUpdatePhase.downloading
+          ? controller.progress
+          : null;
+      final action = switch (phase) {
+        AppUpdatePhase.available => TextButton(
+          onPressed: controller.download,
+          child: Text(strings.updateNow),
+        ),
+        AppUpdatePhase.downloaded => FilledButton.tonalIcon(
+          onPressed: controller.install,
+          icon: const Icon(Icons.install_mobile_rounded, size: 18),
+          label: Text(strings.updateInstall),
+        ),
+        AppUpdatePhase.error => TextButton(
+          onPressed: () => controller.check(),
+          child: Text(strings.checkForUpdates),
+        ),
+        _ => null,
+      };
+
+      return Material(
+        color: scheme.surfaceContainerHigh,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                child: Row(
+                  children: [
+                    Icon(icon, color: scheme.primary, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    ?action,
+                    if (phase != AppUpdatePhase.downloading &&
+                        phase != AppUpdatePhase.installing &&
+                        phase != AppUpdatePhase.downloaded)
+                      IconButton(
+                        onPressed: controller.dismiss,
+                        tooltip: strings.cancel,
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                  ],
+                ),
+              ),
+              if (progress != null)
+                LinearProgressIndicator(value: progress == 0 ? null : progress),
+            ],
           ),
-          label: Text(downloaded ? strings.updateInstall : strings.updateNow),
         ),
-      ],
-    );
-  }
+      );
+    },
+  );
+}
+
+class AppUpdateHost extends StatelessWidget {
+  const AppUpdateHost({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: appUpdateController,
+    builder: (context, _) {
+      if (!appUpdateController.visible) return child;
+      return Column(
+        children: [
+          const AppUpdateStatusBar(),
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: child,
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
