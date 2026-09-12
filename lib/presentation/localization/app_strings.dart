@@ -89,6 +89,21 @@ class AppStrings {
   String get lecture => _text('lecture');
   String get recommended => _text('recommended');
   String get event => _text('event');
+  String get addClass => _text('addClass');
+  String get addClassTitle => _text('addClassTitle');
+  String get classType => _text('classType');
+  String get targetTimetable => _text('targetTimetable');
+  String get courseName => _text('courseName');
+  String get courseNameRequired => _text('courseNameRequired');
+  String get courseCodeOptional => _text('courseCodeOptional');
+  String get seminarGroupOptional => _text('seminarGroupOptional');
+  String get classDate => _text('classDate');
+  String get startTime => _text('startTime');
+  String get endTime => _text('endTime');
+  String get invalidClassTime => _text('invalidClassTime');
+  String get roomOptional => _text('roomOptional');
+  String get teacherOptional => _text('teacherOptional');
+  String get saveClass => _text('saveClass');
   String seminarDetails(String? group) =>
       group == null ? seminar : '$seminar $group';
   String get scheduledEvents => _text('scheduledEvents');
@@ -383,6 +398,21 @@ class AppStrings {
       'lecture': 'Lecture',
       'recommended': 'Recommended',
       'event': 'Event',
+      'addClass': 'Add class',
+      'addClassTitle': 'Add to schedule',
+      'classType': 'Class type',
+      'targetTimetable': 'Timetable',
+      'courseName': 'Course name',
+      'courseNameRequired': 'Enter a course name.',
+      'courseCodeOptional': 'Course code (optional)',
+      'seminarGroupOptional': 'Seminar group (optional)',
+      'classDate': 'Date',
+      'startTime': 'Start time',
+      'endTime': 'End time',
+      'invalidClassTime': 'The end time must be after the start time.',
+      'roomOptional': 'Room (optional)',
+      'teacherOptional': 'Teacher (optional)',
+      'saveClass': 'Add class',
       'preferences': 'PREFERENCES',
       'scheduleLabel': 'SCHEDULE',
       'at': 'at',
@@ -568,6 +598,21 @@ class AppStrings {
       'lecture': 'Přednáška',
       'recommended': 'Doporučená',
       'event': 'Akce',
+      'addClass': 'Přidat výuku',
+      'addClassTitle': 'Přidat do rozvrhu',
+      'classType': 'Typ výuky',
+      'targetTimetable': 'Rozvrh',
+      'courseName': 'Název předmětu',
+      'courseNameRequired': 'Zadejte název předmětu.',
+      'courseCodeOptional': 'Kód předmětu (volitelné)',
+      'seminarGroupOptional': 'Seminární skupina (volitelné)',
+      'classDate': 'Datum',
+      'startTime': 'Začátek',
+      'endTime': 'Konec',
+      'invalidClassTime': 'Čas konce musí být po čase začátku.',
+      'roomOptional': 'Místnost (volitelné)',
+      'teacherOptional': 'Vyučující (volitelné)',
+      'saveClass': 'Přidat výuku',
       'preferences': 'PŘEDVOLBY',
       'scheduleLabel': 'ROZVRH',
       'at': 'v',
@@ -753,6 +798,21 @@ class AppStrings {
       'lecture': 'Prednáška',
       'recommended': 'Odporúčaná',
       'event': 'Udalosť',
+      'addClass': 'Pridať výučbu',
+      'addClassTitle': 'Pridať do rozvrhu',
+      'classType': 'Typ výučby',
+      'targetTimetable': 'Rozvrh',
+      'courseName': 'Názov predmetu',
+      'courseNameRequired': 'Zadajte názov predmetu.',
+      'courseCodeOptional': 'Kód predmetu (voliteľné)',
+      'seminarGroupOptional': 'Seminárna skupina (voliteľné)',
+      'classDate': 'Dátum',
+      'startTime': 'Začiatok',
+      'endTime': 'Koniec',
+      'invalidClassTime': 'Čas konca musí byť po čase začiatku.',
+      'roomOptional': 'Miestnosť (voliteľné)',
+      'teacherOptional': 'Vyučujúci (voliteľné)',
+      'saveClass': 'Pridať výučbu',
       'preferences': 'PREDVOĽBY',
       'scheduleLabel': 'ROZVRH',
       'at': 'o',

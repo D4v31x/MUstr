@@ -8,6 +8,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import '../providers/planner_providers.dart';
 import '../localization/app_strings.dart';
 import 'faculty_onboarding.dart';
+import 'lesson_editor_sheet.dart';
 import 'onboarding_screen.dart';
 import 'semester_screen.dart';
 import 'settings_screen.dart';
@@ -158,6 +159,27 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
                   ),
                 ),
                 icon: const Icon(Icons.settings_outlined),
+              ),
+              IconButton(
+                tooltip: strings.addClass,
+                onPressed: () {
+                  final matching = _facultyFilter == null
+                      ? data.timetables
+                      : data.timetables
+                            .where(
+                              (timetable) =>
+                                  timetable.assignedFacultyId == _facultyFilter,
+                            )
+                            .toList();
+                  showLessonEditor(
+                    context,
+                    data: data,
+                    initialTimetableId: matching.isEmpty
+                        ? data.timetables.first.id
+                        : matching.first.id,
+                  );
+                },
+                icon: const Icon(Icons.add_circle_outline_rounded),
               ),
               IconButton(
                 tooltip: strings.importXml,

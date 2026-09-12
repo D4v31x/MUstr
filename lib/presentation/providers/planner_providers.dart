@@ -50,6 +50,65 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     return _refresh();
   }
 
+  Future<void> addManualLesson({
+    required String timetableId,
+    required LessonKind kind,
+    required String courseCode,
+    required String courseName,
+    required String? seminarGroup,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String room,
+    required String teacher,
+  }) async {
+    final timetable = _currentData.timetables.firstWhere(
+      (item) => item.id == timetableId,
+    );
+    final normalizedCode = courseCode.trim().isEmpty
+        ? courseName.trim()
+        : courseCode.trim();
+    final subjectKey =
+        'manual:$timetableId:${normalizedCode.toLowerCase().replaceAll(RegExp(r'\s+'), '-')}';
+    final facultyId = timetable.assignedFacultyId;
+    final subject = Subject(
+      id: subjectKey,
+      courseCode: normalizedCode,
+      name: courseName.trim(),
+      subjectId: null,
+      faculty: facultyId,
+    );
+    final lesson = Lesson(
+      id: _uuid.v4(),
+      date: DateTime(startTime.year, startTime.month, startTime.day),
+      startTime: startTime,
+      endTime: endTime,
+      subjectKey: subjectKey,
+      courseCode: normalizedCode,
+      seminarGroup:
+          kind == LessonKind.seminar && seminarGroup?.trim().isNotEmpty == true
+          ? seminarGroup!.trim()
+          : null,
+      kind: kind,
+      priority: kind == LessonKind.seminar
+          ? LessonPriority.high
+          : LessonPriority.normal,
+      customColorValue: null,
+      courseName: courseName.trim(),
+      subjectId: null,
+      faculty: facultyId,
+      timetableFacultyId: facultyId,
+      semester: timetable.semester,
+      rooms: room.trim().isEmpty
+          ? const []
+          : [Room(id: null, name: room.trim())],
+      teachers: teacher.trim().isEmpty
+          ? const []
+          : [Teacher(id: null, name: teacher.trim())],
+    );
+    await _repository.addLesson(timetableId, lesson, subject);
+    await _refresh();
+  }
+
   Future<void> deleteTimetables(List<String> timetableIds) async {
     if (timetableIds.isEmpty) {
       return;

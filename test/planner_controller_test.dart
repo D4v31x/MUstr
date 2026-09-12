@@ -153,6 +153,51 @@ void main() {
     expect(container.read(plannerProvider).requireValue.timetables, isEmpty);
   });
 
+  test('manual seminar is added to the selected timetable', () async {
+    final repository = _FakeRepository();
+    final timetable = Timetable(
+      id: 'fall-2026-fi',
+      name: 'Fall 2026',
+      assignedFacultyId: 'fi',
+      semester: 'Fall 2026',
+      importedAt: DateTime(2026, 9, 1),
+      lessons: const [],
+      subjects: const [],
+    );
+    repository.data = repository.data.withTimetables([timetable]);
+    final container = ProviderContainer(
+      overrides: [
+        plannerRepositoryProvider.overrideWithValue(repository),
+        reminderSchedulerProvider.overrideWithValue(_FakeScheduler()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(plannerProvider.future);
+
+    await container
+        .read(plannerProvider.notifier)
+        .addManualLesson(
+          timetableId: timetable.id,
+          kind: LessonKind.seminar,
+          courseCode: 'PB151',
+          courseName: 'Computer Systems',
+          seminarGroup: '02',
+          startTime: DateTime(2026, 9, 21, 10),
+          endTime: DateTime(2026, 9, 21, 11, 40),
+          room: 'A318',
+          teacher: 'Ada Lovelace',
+        );
+
+    final result = container.read(plannerProvider).requireValue;
+    final lesson = result.timetables.single.lessons.single;
+    expect(lesson.kind, LessonKind.seminar);
+    expect(lesson.seminarGroup, '02');
+    expect(lesson.rooms.single.name, 'A318');
+    expect(lesson.teachers.single.name, 'Ada Lovelace');
+    expect(result.timetable!.lessons.single.id, lesson.id);
+    expect(result.subjects.single.courseCode, 'PB151');
+  });
+
   test('deleting a subject retains its tasks as unassigned', () async {
     final repository = _FakeRepository();
     final task = PlannerTask(
@@ -243,6 +288,36 @@ class _FakeRepository implements PlannerRepository {
         subjects: timetable.subjects,
         tasks: data.tasks,
       );
+
+  @override
+  Future<void> addLesson(
+    String timetableId,
+    Lesson lesson,
+    Subject subject,
+  ) async {
+    data = data.withTimetables(
+      data.timetables
+          .map(
+            (timetable) => timetable.id == timetableId
+                ? Timetable(
+                    id: timetable.id,
+                    name: timetable.name,
+                    assignedFacultyId: timetable.assignedFacultyId,
+                    semester: timetable.semester,
+                    importedAt: timetable.importedAt,
+                    lessons: [...timetable.lessons, lesson],
+                    subjects: [
+                      ...timetable.subjects.where(
+                        (item) => item.id != subject.id,
+                      ),
+                      subject,
+                    ],
+                  )
+                : timetable,
+          )
+          .toList(),
+    );
+  }
 
   @override
   Future<void> deleteTimetables(List<String> timetableIds) async =>

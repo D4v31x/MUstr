@@ -281,6 +281,40 @@ class SqlitePlannerRepository implements PlannerRepository {
   }
 
   @override
+  Future<void> addLesson(
+    String timetableId,
+    Lesson lesson,
+    Subject subject,
+  ) async {
+    final db = await _db;
+    await db.transaction((transaction) async {
+      final timetable = await transaction.query(
+        'timetables',
+        columns: ['id'],
+        where: 'id = ?',
+        whereArgs: [timetableId],
+        limit: 1,
+      );
+      if (timetable.isEmpty) {
+        throw StateError('The selected timetable no longer exists.');
+      }
+      await transaction.insert('subjects', {
+        'id': subject.id,
+        'course_code': subject.courseCode,
+        'name': subject.name,
+        'subject_id': subject.subjectId,
+        'faculty': subject.faculty,
+        'notes': subject.notes,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await transaction.insert('timetable_subjects', {
+        'timetable_id': timetableId,
+        'subject_id': subject.id,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await transaction.insert('lessons', _lessonToRow(lesson, timetableId));
+    });
+  }
+
+  @override
   Future<void> deleteTimetables(List<String> timetableIds) async {
     if (timetableIds.isEmpty) {
       return;
