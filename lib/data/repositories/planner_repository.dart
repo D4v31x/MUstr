@@ -3,6 +3,7 @@ import '../../domain/entities/faculty.dart';
 import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/entities/exam.dart';
+import '../../domain/entities/important_date.dart';
 import '../../domain/entities/timetable.dart';
 
 class PlannerData {
@@ -18,9 +19,10 @@ class PlannerData {
     this.highlightCurrentDay = true,
     this.exams = const [],
     this.examPeriods = const [],
+    List<ImportantDate>? importantDates,
     required this.subjects,
     required this.tasks,
-  });
+  }) : _importantDates = importantDates ?? const [];
 
   final Timetable? timetable;
   final List<Timetable> timetables;
@@ -33,6 +35,8 @@ class PlannerData {
   final bool highlightCurrentDay;
   final List<Exam> exams;
   final List<ExamPeriod> examPeriods;
+  final List<ImportantDate>? _importantDates;
+  List<ImportantDate> get importantDates => _importantDates ?? const [];
   final List<Subject> subjects;
   final List<PlannerTask> tasks;
 
@@ -48,6 +52,7 @@ class PlannerData {
     bool? highlightCurrentDay,
     List<Exam>? exams,
     List<ExamPeriod>? examPeriods,
+    List<ImportantDate>? importantDates,
     List<Subject>? subjects,
     List<PlannerTask>? tasks,
   }) => PlannerData(
@@ -62,6 +67,7 @@ class PlannerData {
     highlightCurrentDay: highlightCurrentDay ?? this.highlightCurrentDay,
     exams: exams ?? this.exams,
     examPeriods: examPeriods ?? this.examPeriods,
+    importantDates: importantDates ?? this.importantDates,
     subjects: subjects ?? this.subjects,
     tasks: tasks ?? this.tasks,
   );
@@ -99,6 +105,7 @@ class PlannerData {
       highlightCurrentDay: highlightCurrentDay,
       exams: exams,
       examPeriods: examPeriods,
+      importantDates: importantDates,
       subjects: subjects,
       tasks: tasks,
     );
@@ -143,6 +150,13 @@ class PlannerData {
       examPeriods: examPeriods
           .where((period) => period.facultyId == facultyId)
           .toList(),
+      importantDates: importantDates
+          .where(
+            (importantDate) =>
+                importantDate.facultyId == null ||
+                importantDate.facultyId == facultyId,
+          )
+          .toList(),
       subjects: selectedSubjects,
       tasks: tasks,
     );
@@ -167,6 +181,8 @@ abstract interface class PlannerRepository {
   Future<void> saveExam(Exam exam);
   Future<void> deleteExam(String examId);
   Future<void> saveExamPeriod(ExamPeriod period);
+  Future<void> saveImportantDate(ImportantDate importantDate);
+  Future<void> deleteImportantDate(String importantDateId);
   Future<void> saveSubjectNotes(String subjectId, String notes);
   Future<void> deleteSubject(String subjectId);
   Future<void> saveTask(PlannerTask task);

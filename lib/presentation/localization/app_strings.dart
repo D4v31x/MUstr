@@ -15,10 +15,23 @@ class AppStrings {
   String get previousWeek => _text('previousWeek');
   String get nextWeek => _text('nextWeek');
   String get semesterLabel => _text('semesterLabel');
+  String get importantDates => _text('importantDates');
+  String get importantDate => _text('importantDate');
+  String get addImportantDate => _text('addImportantDate');
+  String get importantDateTitle => _text('importantDateTitle');
+  String get importantDateTitleRequired => _text('importantDateTitleRequired');
+  String get saveImportantDate => _text('saveImportantDate');
+  String get deleteImportantDate => _text('deleteImportantDate');
+  String get eventTime => _text('eventTime');
+  String get allDay => _text('allDay');
+  String get reminderSet => _text('reminderSet');
+  String get semesterStarts => _text('semesterStarts');
+  String get semesterEnds => _text('semesterEnds');
   String get importedTimetable => _text('importedTimetable');
   String get addExam => _text('addExam');
   String get examPeriod => _text('examPeriod');
   String get exam => _text('exam');
+  String get exams => _text('exams');
   String get jumpToWeek => _text('jumpToWeek');
   String get deadlines => _text('deadlines');
   String get assessments => _text('assessments');
@@ -108,6 +121,7 @@ class AppStrings {
   String seminarDetails(String? group) =>
       group == null ? seminar : '$seminar $group';
   String get scheduledEvents => _text('scheduledEvents');
+  String get noClassesThisWeek => _text('noClassesThisWeek');
   String get preferences => _text('preferences');
   String get scheduleLabel => _text('scheduleLabel');
   String get at => _text('at');
@@ -149,8 +163,6 @@ class AppStrings {
   String get aboutSubtitle => _text('aboutSubtitle');
   String get aboutPurposeTitle => _text('aboutPurposeTitle');
   String get aboutPurposeBody => _text('aboutPurposeBody');
-  String get aboutPrivacyTitle => _text('aboutPrivacyTitle');
-  String get aboutPrivacyBody => _text('aboutPrivacyBody');
   String get aboutIndependent => _text('aboutIndependent');
   String get madeBy => _text('madeBy');
   String get projectSource => _text('projectSource');
@@ -164,6 +176,10 @@ class AppStrings {
   String get linkOpenFailed => _text('linkOpenFailed');
   String get easterEggTitle => _text('easterEggTitle');
   String get easterEggBody => _text('easterEggBody');
+  String get easterEggScan => _text('easterEggScan');
+  String get easterEggRescue => _text('easterEggRescue');
+  String get easterEggResult => _text('easterEggResult');
+  String get easterEggComplete => _text('easterEggComplete');
   String version(String value) => _format('version', value);
   String get manageTimetables => _text('manageTimetables');
   String get manageTimetablesSubtitle => _text('manageTimetablesSubtitle');
@@ -183,6 +199,7 @@ class AppStrings {
   String get back => _text('back');
   String get allFaculties => _text('allFaculties');
   String get filterFaculty => _text('filterFaculty');
+  String get moreOptions => _text('moreOptions');
   String get yourFaculties => _text('yourFaculties');
   String get importXml => _text('importXml');
   String get pasteXml => _text('pasteXml');
@@ -202,6 +219,10 @@ class AppStrings {
   String get updatePermission => _text('updatePermission');
   String get updateCurrent => _text('updateCurrent');
   String get updateFailed => _text('updateFailed');
+  String get updateNetworkUnavailable => _text('updateNetworkUnavailable');
+  String get updateServerUnavailable => _text('updateServerUnavailable');
+  String get updateInvalidRelease => _text('updateInvalidRelease');
+  String get updateIntegrityFailed => _text('updateIntegrityFailed');
   String get cancel => _text('cancel');
   String get import => _text('import');
   String get continueLabel => _text('continue');
@@ -275,13 +296,10 @@ class AppStrings {
       'classColor': 'Class color',
       'useTypeColor': 'Use type color',
       'about': 'ABOUT',
-      'aboutSubtitle': 'Your offline planner for Masaryk University.',
+      'aboutSubtitle': 'Your offline schedule viewer for Masaryk University.',
       'aboutPurposeTitle': 'Built for student life',
       'aboutPurposeBody':
           'MUstr turns exported MUNI timetables into a practical offline schedule with classes, tasks, exams, reminders, and a home-screen widget.',
-      'aboutPrivacyTitle': 'Private by design',
-      'aboutPrivacyBody':
-          'Your timetable and study data stay on this device. MUstr only connects to GitHub when checking for app updates or when you open a project link.',
       'aboutIndependent':
           'MUstr is an independent student project and is not an official Masaryk University application.',
       'madeBy': 'Made by D4v31x',
@@ -294,9 +312,15 @@ class AppStrings {
       'openSourceLicenses': 'Open-source licenses',
       'openSourceLicensesSubtitle': 'Libraries and fonts used by MUstr',
       'linkOpenFailed': 'Could not open the link.',
-      'easterEggTitle': 'Schedule diagnostics',
+      'easterEggTitle': 'Friday recovery protocol',
       'easterEggBody':
-          'Seven taps detected. Unfortunately, no free Friday was found.',
+          'A hidden timetable scanner has been activated. It can search for a free Friday, but expectations should remain realistic.',
+      'easterEggScan': 'Scan Friday',
+      'easterEggRescue': 'Start recovery protocol',
+      'easterEggResult':
+          'Result: no empty Friday was found. A protected 20-minute recovery window has been reserved between classes.',
+      'easterEggComplete':
+          'Recovery complete. The calendar has been informed that you are, in fact, a person and not a scheduling resource.',
       'version': 'Version {value}',
       'manageTimetables': 'TIMETABLES',
       'manageTimetablesSubtitle': 'Review or remove imported schedules.',
@@ -317,6 +341,7 @@ class AppStrings {
       'back': 'Back',
       'allFaculties': 'All faculties',
       'filterFaculty': 'Filter faculty',
+      'moreOptions': 'More options',
       'yourFaculties': 'Your faculties',
       'importXml': 'Import XML',
       'pasteXml': 'Paste XML',
@@ -337,6 +362,14 @@ class AppStrings {
           'Allow MUstr to install unknown apps, then return and tap Install again.',
       'updateCurrent': 'MUstr is up to date.',
       'updateFailed': 'The update check failed.',
+      'updateNetworkUnavailable':
+          'No internet connection. Check your network and try again.',
+      'updateServerUnavailable':
+          'The update server is temporarily unavailable. Try again later.',
+      'updateInvalidRelease':
+          'The latest release does not contain a valid Android update.',
+      'updateIntegrityFailed':
+          'The downloaded update could not be verified. Please download it again.',
       'cancel': 'Cancel',
       'import': 'Import',
       'continue': 'Continue',
@@ -372,12 +405,26 @@ class AppStrings {
       'previousWeek': 'Previous week',
       'nextWeek': 'Next week',
       'semesterLabel': 'SEMESTER',
+      'importantDates': 'Important dates',
+      'importantDate': 'Important date',
+      'addImportantDate': 'Add important date',
+      'importantDateTitle': 'Date title',
+      'importantDateTitleRequired': 'A title is required.',
+      'saveImportantDate': 'Save date',
+      'deleteImportantDate': 'Delete important date',
+      'eventTime': 'Set a time',
+      'allDay': 'All day',
+      'reminderSet': 'Reminder set',
+      'semesterStarts': 'Semester starts',
+      'semesterEnds': 'Semester ends',
       'importedTimetable': 'Imported timetable',
       'addExam': 'Add exam',
       'examPeriod': 'Exam period',
       'exam': 'Exam',
+      'exams': 'Exams',
       'jumpToWeek': 'Jump to week',
       'scheduledEvents': 'scheduled events',
+      'noClassesThisWeek': 'No classes are scheduled for this week.',
       'deadlines': 'Deadlines',
       'assessments': 'Assessments',
       'noDeadlines': 'No open deadlines in this week.',
@@ -501,13 +548,10 @@ class AppStrings {
       'classColor': 'Barva výuky',
       'useTypeColor': 'Použít barvu typu',
       'about': 'O APLIKACI',
-      'aboutSubtitle': 'Váš offline plánovač pro Masarykovu univerzitu.',
+      'aboutSubtitle': 'Váš offline prohlížeč rozvrhu Masarykovy univerzity.',
       'aboutPurposeTitle': 'Pro každodenní studentský život',
       'aboutPurposeBody':
           'MUstr promění exportovaný rozvrh MU v praktický offline plánovač s výukou, úkoly, zkouškami, připomínkami a widgetem na plochu.',
-      'aboutPrivacyTitle': 'Soukromí na prvním místě',
-      'aboutPrivacyBody':
-          'Rozvrh a studijní data zůstávají v tomto zařízení. MUstr se připojuje ke GitHubu pouze při kontrole aktualizací nebo otevření odkazu projektu.',
       'aboutIndependent':
           'MUstr je nezávislý studentský projekt a není oficiální aplikací Masarykovy univerzity.',
       'madeBy': 'Vytvořil D4v31x',
@@ -520,9 +564,15 @@ class AppStrings {
       'openSourceLicenses': 'Open-source licence',
       'openSourceLicensesSubtitle': 'Knihovny a písma použité v MUstr',
       'linkOpenFailed': 'Odkaz se nepodařilo otevřít.',
-      'easterEggTitle': 'Diagnostika rozvrhu',
+      'easterEggTitle': 'Protokol záchrany pátku',
       'easterEggBody':
-          'Zjištěno sedm klepnutí. Volný pátek se bohužel nenašel.',
+          'Byl aktivován skrytý skener rozvrhu. Umí hledat volný pátek, ale očekávání je dobré držet při zemi.',
+      'easterEggScan': 'Prohledat pátek',
+      'easterEggRescue': 'Spustit záchranný protokol',
+      'easterEggResult':
+          'Výsledek: volný pátek se nenašel. Mezi výukou vám ale bylo chráněno 20 minut na regeneraci.',
+      'easterEggComplete':
+          'Záchrana dokončena. Kalendář byl informován, že jste člověk, ne zdroj pro plánování.',
       'version': 'Verze {value}',
       'manageTimetables': 'ROZVRHY',
       'manageTimetablesSubtitle':
@@ -544,6 +594,7 @@ class AppStrings {
       'back': 'Zpět',
       'allFaculties': 'Všechny fakulty',
       'filterFaculty': 'Filtrovat fakultu',
+      'moreOptions': 'Další možnosti',
       'yourFaculties': 'Vaše fakulty',
       'importXml': 'Importovat XML',
       'pasteXml': 'Vložit XML',
@@ -564,6 +615,14 @@ class AppStrings {
           'Povolte aplikaci MUstr instalovat neznámé aplikace, potom se vraťte a znovu klepněte na Nainstalovat.',
       'updateCurrent': 'Aplikace MUstr je aktuální.',
       'updateFailed': 'Kontrola aktualizací se nezdařila.',
+      'updateNetworkUnavailable':
+          'Není dostupné internetové připojení. Zkontrolujte síť a zkuste to znovu.',
+      'updateServerUnavailable':
+          'Server s aktualizacemi je dočasně nedostupný. Zkuste to později.',
+      'updateInvalidRelease':
+          'Nejnovější vydání neobsahuje platnou aktualizaci pro Android.',
+      'updateIntegrityFailed':
+          'Staženou aktualizaci se nepodařilo ověřit. Stáhněte ji prosím znovu.',
       'cancel': 'Zrušit',
       'import': 'Importovat',
       'continue': 'Pokračovat',
@@ -598,12 +657,26 @@ class AppStrings {
       'previousWeek': 'Předchozí týden',
       'nextWeek': 'Další týden',
       'semesterLabel': 'SEMESTR',
+      'importantDates': 'Důležitá data',
+      'importantDate': 'Důležité datum',
+      'addImportantDate': 'Přidat důležité datum',
+      'importantDateTitle': 'Název data',
+      'importantDateTitleRequired': 'Zadejte název.',
+      'saveImportantDate': 'Uložit datum',
+      'deleteImportantDate': 'Smazat důležité datum',
+      'eventTime': 'Nastavit čas',
+      'allDay': 'Celý den',
+      'reminderSet': 'Připomínka nastavena',
+      'semesterStarts': 'Semestr začíná',
+      'semesterEnds': 'Semestr končí',
       'importedTimetable': 'Importovaný rozvrh',
       'addExam': 'Přidat zkoušku',
       'examPeriod': 'Zkouškové období',
       'exam': 'Zkouška',
+      'exams': 'Zkoušky',
       'jumpToWeek': 'Přejít na týden',
       'scheduledEvents': 'naplánovaných akcí',
+      'noClassesThisWeek': 'V tomto týdnu nejsou naplánované žádné výuky.',
       'deadlines': 'Termíny',
       'assessments': 'Hodnocení',
       'noDeadlines': 'V tomto týdnu nejsou žádné otevřené termíny.',
@@ -727,13 +800,10 @@ class AppStrings {
       'classColor': 'Farba výučby',
       'useTypeColor': 'Použiť farbu typu',
       'about': 'O APLIKÁCII',
-      'aboutSubtitle': 'Váš offline plánovač pre Masarykovu univerzitu.',
+      'aboutSubtitle': 'Váš offline prehliadač rozvrhu Masarykovej univerzity.',
       'aboutPurposeTitle': 'Pre každodenný študentský život',
       'aboutPurposeBody':
           'MUstr premení exportovaný rozvrh MU na praktický offline plánovač s výučbou, úlohami, skúškami, pripomienkami a widgetom na plochu.',
-      'aboutPrivacyTitle': 'Súkromie na prvom mieste',
-      'aboutPrivacyBody':
-          'Rozvrh a študijné údaje zostávajú v tomto zariadení. MUstr sa pripája ku GitHubu iba pri kontrole aktualizácií alebo otvorení odkazu projektu.',
       'aboutIndependent':
           'MUstr je nezávislý študentský projekt a nie je oficiálnou aplikáciou Masarykovej univerzity.',
       'madeBy': 'Vytvoril D4v31x',
@@ -746,9 +816,15 @@ class AppStrings {
       'openSourceLicenses': 'Open-source licencie',
       'openSourceLicensesSubtitle': 'Knižnice a písma použité v MUstr',
       'linkOpenFailed': 'Odkaz sa nepodarilo otvoriť.',
-      'easterEggTitle': 'Diagnostika rozvrhu',
+      'easterEggTitle': 'Protokol záchrany piatka',
       'easterEggBody':
-          'Zistených sedem ťuknutí. Voľný piatok sa, žiaľ, nenašiel.',
+          'Bol aktivovaný skrytý skener rozvrhu. Vie hľadať voľný piatok, ale očakávania je dobré držať pri zemi.',
+      'easterEggScan': 'Prehľadať piatok',
+      'easterEggRescue': 'Spustiť záchranný protokol',
+      'easterEggResult':
+          'Výsledok: voľný piatok sa nenašiel. Medzi výučbou vám však bolo chránených 20 minút na regeneráciu.',
+      'easterEggComplete':
+          'Záchrana dokončená. Kalendár bol informovaný, že ste človek, nie zdroj na plánovanie.',
       'version': 'Verzia {value}',
       'manageTimetables': 'ROZVRHY',
       'manageTimetablesSubtitle':
@@ -770,6 +846,7 @@ class AppStrings {
       'back': 'Späť',
       'allFaculties': 'Všetky fakulty',
       'filterFaculty': 'Filtrovať fakultu',
+      'moreOptions': 'Ďalšie možnosti',
       'yourFaculties': 'Vaše fakulty',
       'importXml': 'Importovať XML',
       'pasteXml': 'Vložiť XML',
@@ -790,6 +867,14 @@ class AppStrings {
           'Povoľte aplikácii MUstr inštalovať neznáme aplikácie, potom sa vráťte a znova ťuknite na Nainštalovať.',
       'updateCurrent': 'Aplikácia MUstr je aktuálna.',
       'updateFailed': 'Kontrola aktualizácií zlyhala.',
+      'updateNetworkUnavailable':
+          'Nie je dostupné internetové pripojenie. Skontrolujte sieť a skúste to znova.',
+      'updateServerUnavailable':
+          'Server s aktualizáciami je dočasne nedostupný. Skúste to neskôr.',
+      'updateInvalidRelease':
+          'Najnovšie vydanie neobsahuje platnú aktualizáciu pre Android.',
+      'updateIntegrityFailed':
+          'Stiahnutú aktualizáciu sa nepodarilo overiť. Stiahnite ju znova.',
       'cancel': 'Zrušiť',
       'import': 'Importovať',
       'continue': 'Pokračovať',
@@ -824,12 +909,26 @@ class AppStrings {
       'previousWeek': 'Predchádzajúci týždeň',
       'nextWeek': 'Nasledujúci týždeň',
       'semesterLabel': 'SEMESTER',
+      'importantDates': 'Dôležité dátumy',
+      'importantDate': 'Dôležitý dátum',
+      'addImportantDate': 'Pridať dôležitý dátum',
+      'importantDateTitle': 'Názov dátumu',
+      'importantDateTitleRequired': 'Zadajte názov.',
+      'saveImportantDate': 'Uložiť dátum',
+      'deleteImportantDate': 'Vymazať dôležitý dátum',
+      'eventTime': 'Nastaviť čas',
+      'allDay': 'Celý deň',
+      'reminderSet': 'Pripomienka nastavená',
+      'semesterStarts': 'Semester začína',
+      'semesterEnds': 'Semester končí',
       'importedTimetable': 'Importovaný rozvrh',
       'addExam': 'Pridať skúšku',
       'examPeriod': 'Skúškové obdobie',
       'exam': 'Skúška',
+      'exams': 'Skúšky',
       'jumpToWeek': 'Prejsť na týždeň',
       'scheduledEvents': 'naplánovaných udalostí',
+      'noClassesThisWeek': 'V tomto týždni nie sú naplánované žiadne výučby.',
       'deadlines': 'Termíny',
       'assessments': 'Hodnotenia',
       'noDeadlines': 'V tomto týždni nie sú žiadne otvorené termíny.',

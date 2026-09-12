@@ -65,6 +65,40 @@ Color lessonColor(
       : Color(colorValue);
 }
 
+Color readableAccentColor(
+  Color accent,
+  Color background, {
+  required Color fallback,
+  double minimumContrast = 4.5,
+}) {
+  if (_contrastRatio(accent, background) >= minimumContrast) return accent;
+  for (var step = 1; step <= 20; step++) {
+    final adjusted = Color.lerp(accent, fallback, step / 20)!;
+    if (_contrastRatio(adjusted, background) >= minimumContrast) {
+      return adjusted;
+    }
+  }
+  return fallback;
+}
+
+Color readableTextColor(Color background) =>
+    _contrastRatio(Colors.black, background) >=
+        _contrastRatio(Colors.white, background)
+    ? Colors.black
+    : Colors.white;
+
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter = firstLuminance > secondLuminance
+      ? firstLuminance
+      : secondLuminance;
+  final darker = firstLuminance > secondLuminance
+      ? secondLuminance
+      : firstLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 Color priorityColor(ColorScheme scheme, TaskPriority priority) =>
     switch (priority) {
       TaskPriority.high => scheme.error,

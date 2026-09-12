@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:muni_timetable/presentation/screens/about_screen.dart';
 
 void main() {
-  testWidgets('about page shows project support actions and easter egg', (
+  testWidgets('about page shows project support actions and friday recovery', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: AboutScreen()));
@@ -21,10 +21,18 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    expect(find.text('Schedule diagnostics'), findsOneWidget);
+    expect(find.text('Friday recovery protocol'), findsOneWidget);
     expect(
       find.text(
-        'Seven taps detected. Unfortunately, no free Friday was found.',
+        'A hidden timetable scanner has been activated. It can search for a free Friday, but expectations should remain realistic.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Scan Friday'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Result: no empty Friday was found. A protected 20-minute recovery window has been reserved between classes.',
       ),
       findsOneWidget,
     );

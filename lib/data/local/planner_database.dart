@@ -10,6 +10,7 @@ import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/entities/timetable.dart';
 import '../../domain/entities/exam.dart';
+import '../../domain/entities/important_date.dart';
 import '../repositories/planner_repository.dart';
 
 class SqlitePlannerRepository implements PlannerRepository {
@@ -23,7 +24,7 @@ class SqlitePlannerRepository implements PlannerRepository {
     final directory = await getApplicationDocumentsDirectory();
     final database = await openDatabase(
       path.join(directory.path, 'muni_planner.db'),
-      version: 7,
+      version: 9,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE timetables (
@@ -67,6 +68,7 @@ class SqlitePlannerRepository implements PlannerRepository {
           )
         ''');
         await _createExamTables(db);
+        await _createImportantDateTable(db);
         await db.execute('''
           CREATE TABLE lesson_preferences (
             lesson_id TEXT PRIMARY KEY, priority INTEGER NOT NULL, color_value INTEGER
@@ -127,8 +129,14 @@ class SqlitePlannerRepository implements PlannerRepository {
             )
           ''');
         }
+        if (oldVersion < 8) {
+          await _createImportantDateTable(db);
+        } else if (oldVersion < 9) {
+          await _addImportantDateTimeColumns(db);
+        }
       },
     );
+    await _ensureImportantDateTable(database);
     _database = database;
     return database;
   }
@@ -200,6 +208,7 @@ class SqlitePlannerRepository implements PlannerRepository {
     final tasks = await _readTasks(db);
     final exams = await _readExams(db);
     final examPeriods = await _readExamPeriods(db);
+    final importantDates = await _readImportantDates(db);
     final lessons = timetables.expand((timetable) => timetable.lessons).toList()
       ..sort((first, second) => first.startTime.compareTo(second.startTime));
     final subjectsById = <String, Subject>{
@@ -232,6 +241,7 @@ class SqlitePlannerRepository implements PlannerRepository {
       highlightCurrentDay: highlightCurrentDay,
       exams: exams,
       examPeriods: examPeriods,
+      importantDates: importantDates,
       subjects: subjects,
       tasks: tasks,
     );
@@ -542,6 +552,32 @@ class SqlitePlannerRepository implements PlannerRepository {
   }
 
   @override
+  Future<void> saveImportantDate(ImportantDate importantDate) async {
+    final db = await _db;
+    await _ensureImportantDateTable(db);
+    await db.insert('important_dates', {
+      'id': importantDate.id,
+      'title': importantDate.title,
+      'date': _date(importantDate.date),
+      'time_minute': importantDate.timeMinute,
+      'reminder_at': importantDate.reminderAt?.toIso8601String(),
+      'faculty_id': importantDate.facultyId,
+      'created_at': importantDate.createdAt.toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> deleteImportantDate(String importantDateId) async {
+    final db = await _db;
+    await _ensureImportantDateTable(db);
+    await db.delete(
+      'important_dates',
+      where: 'id = ?',
+      whereArgs: [importantDateId],
+    );
+  }
+
+  @override
   Future<void> saveSubjectNotes(String subjectId, String notes) async {
     final db = await _db;
     await db.update(
@@ -798,6 +834,26 @@ class SqlitePlannerRepository implements PlannerRepository {
         .toList();
   }
 
+  Future<List<ImportantDate>> _readImportantDates(Database db) async {
+    await _ensureImportantDateTable(db);
+    final rows = await db.query('important_dates', orderBy: 'date, title');
+    return rows
+        .map(
+          (row) => ImportantDate(
+            id: row['id']! as String,
+            title: row['title']! as String,
+            date: DateTime.parse(row['date']! as String),
+            timeMinute: row['time_minute'] as int?,
+            reminderAt: row['reminder_at'] == null
+                ? null
+                : DateTime.parse(row['reminder_at']! as String),
+            facultyId: row['faculty_id'] as String?,
+            createdAt: DateTime.parse(row['created_at']! as String),
+          ),
+        )
+        .toList();
+  }
+
   Future<void> _createExamTables(DatabaseExecutor db) async {
     await db.execute('''
       CREATE TABLE exam_periods (
@@ -810,6 +866,43 @@ class SqlitePlannerRepository implements PlannerRepository {
         scheduled_at TEXT NOT NULL, location TEXT NOT NULL, notes TEXT NOT NULL, created_at TEXT NOT NULL
       )
     ''');
+  }
+
+  Future<void> _createImportantDateTable(DatabaseExecutor db) => db.execute('''
+      CREATE TABLE important_dates (
+        id TEXT PRIMARY KEY, title TEXT NOT NULL, date TEXT NOT NULL,
+        time_minute INTEGER, reminder_at TEXT, faculty_id TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+  Future<void> _addImportantDateTimeColumns(DatabaseExecutor db) async {
+    await db.execute(
+      'ALTER TABLE important_dates ADD COLUMN time_minute INTEGER',
+    );
+    await db.execute('ALTER TABLE important_dates ADD COLUMN reminder_at TEXT');
+  }
+
+  Future<void> _ensureImportantDateTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS important_dates (
+        id TEXT PRIMARY KEY, title TEXT NOT NULL, date TEXT NOT NULL,
+        time_minute INTEGER, reminder_at TEXT, faculty_id TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    final columns = await db.rawQuery('PRAGMA table_info(important_dates)');
+    final names = columns.map((column) => column['name']).toSet();
+    if (!names.contains('time_minute')) {
+      await db.execute(
+        'ALTER TABLE important_dates ADD COLUMN time_minute INTEGER',
+      );
+    }
+    if (!names.contains('reminder_at')) {
+      await db.execute(
+        'ALTER TABLE important_dates ADD COLUMN reminder_at TEXT',
+      );
+    }
   }
 
   String _date(DateTime value) =>

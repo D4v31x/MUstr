@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../data/repositories/planner_repository.dart';
 import '../providers/planner_providers.dart';
 import '../localization/app_strings.dart';
 import 'faculty_onboarding.dart';
@@ -44,6 +45,64 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
       }
     });
   }
+
+  String _defaultTimetableId(PlannerData data) {
+    final matching = _facultyFilter == null
+        ? data.timetables
+        : data.timetables
+              .where(
+                (timetable) => timetable.assignedFacultyId == _facultyFilter,
+              )
+              .toList();
+    return matching.isEmpty ? data.timetables.first.id : matching.first.id;
+  }
+
+  Future<void> _showOptionsSheet(PlannerData data) =>
+      showModalBottomSheet<void>(
+        context: context,
+        useSafeArea: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        sheetAnimationStyle: const AnimationStyle(
+          duration: Duration(milliseconds: 340),
+          reverseDuration: Duration(milliseconds: 220),
+        ),
+        builder: (sheetContext) => _ScheduleOptionsSheet(
+          data: data,
+          selectedFacultyId: _facultyFilter,
+          onFacultySelected: (facultyId) {
+            Navigator.of(sheetContext).pop();
+            setState(() => _facultyFilter = facultyId);
+          },
+          onAddClass: () {
+            Navigator.of(sheetContext).pop();
+            showLessonEditor(
+              context,
+              data: data,
+              initialTimetableId: _defaultTimetableId(data),
+            );
+          },
+          onImport: () {
+            Navigator.of(sheetContext).pop();
+            _importFile();
+          },
+          onManageFaculties: () {
+            Navigator.of(sheetContext).pop();
+            showFacultyEditor(
+              context,
+              data.faculties.map((faculty) => faculty.id).toList(),
+            );
+          },
+          onSettings: () {
+            Navigator.of(sheetContext).pop();
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SettingsScreen(data: data),
+              ),
+            );
+          },
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -92,104 +151,14 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
               ],
             ),
             actions: [
-              PopupMenuButton<String>(
-                tooltip: strings.filterFaculty,
-                onSelected: (value) => setState(
-                  () => _facultyFilter = value == 'all' ? null : value,
-                ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'all',
-                    child: Text(strings.allFaculties),
-                  ),
-                  ...data.faculties.map(
-                    (faculty) => PopupMenuItem(
-                      value: faculty.id,
-                      child: Row(
-                        children: [
-                          FacultyBadge(facultyId: faculty.id, compact: true),
-                          const SizedBox(width: 16),
-                          Text(faculty.localizedName(strings.languageCode)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Center(
-                    child: _facultyFilter == null
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xffe5f0f8),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              strings.all.toUpperCase(),
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    fontFamily: 'MuniBold',
-                                    color: const Color(0xff005ca9),
-                                  ),
-                            ),
-                          )
-                        : FacultyBadge(
-                            facultyId: _facultyFilter!,
-                            compact: true,
-                          ),
-                  ),
-                ),
-              ),
               IconButton(
-                tooltip: strings.yourFaculties,
-                onPressed: () => showFacultyEditor(
-                  context,
-                  data.faculties.map((faculty) => faculty.id).toList(),
-                ),
-                icon: const Icon(Icons.account_balance_outlined),
-              ),
-              IconButton(
-                tooltip: strings.settings,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => SettingsScreen(data: data),
-                  ),
-                ),
-                icon: const Icon(Icons.settings_outlined),
-              ),
-              IconButton(
-                tooltip: strings.addClass,
-                onPressed: () {
-                  final matching = _facultyFilter == null
-                      ? data.timetables
-                      : data.timetables
-                            .where(
-                              (timetable) =>
-                                  timetable.assignedFacultyId == _facultyFilter,
-                            )
-                            .toList();
-                  showLessonEditor(
-                    context,
-                    data: data,
-                    initialTimetableId: matching.isEmpty
-                        ? data.timetables.first.id
-                        : matching.first.id,
-                  );
-                },
-                icon: const Icon(Icons.add_circle_outline_rounded),
-              ),
-              IconButton(
-                tooltip: strings.importXml,
-                onPressed: _importFile,
-                icon: const Icon(Icons.upload_file_outlined),
+                tooltip: strings.moreOptions,
+                onPressed: () => _showOptionsSheet(data),
+                icon: const Icon(Icons.more_horiz_rounded),
               ),
             ],
           ),
-          body: IndexedStack(
+          body: _AnimatedTabStack(
             index: _tab,
             children: [
               if (display.timetable == null)
@@ -431,6 +400,397 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
               ),
             )
             .toList(),
+      ),
+    );
+  }
+}
+
+class _AnimatedTabStack extends StatefulWidget {
+  const _AnimatedTabStack({required this.index, required this.children});
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<_AnimatedTabStack> createState() => _AnimatedTabStackState();
+}
+
+class _AnimatedTabStackState extends State<_AnimatedTabStack>
+    with SingleTickerProviderStateMixin {
+  static const _transitionDuration = Duration(milliseconds: 280);
+  late final AnimationController _controller;
+  late int _activeIndex;
+  int? _exitingIndex;
+  var _direction = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeIndex = widget.index;
+    _controller = AnimationController(
+      vsync: this,
+      duration: _transitionDuration,
+      value: 1,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedTabStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index == _activeIndex) return;
+
+    setState(() {
+      _exitingIndex = _activeIndex;
+      _direction = widget.index > _activeIndex ? 1 : -1;
+      _activeIndex = widget.index;
+    });
+    _controller.forward(from: 0).whenComplete(() {
+      if (mounted && _activeIndex == widget.index) {
+        setState(() => _exitingIndex = null);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final exiting = _exitingIndex;
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          for (var index = 0; index < widget.children.length; index++)
+            if (index == _activeIndex || index == exiting)
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  child: RepaintBoundary(child: widget.children[index]),
+                  builder: (context, child) {
+                    final progress = Curves.easeOutCubic.transform(
+                      _controller.value,
+                    );
+                    final isExiting = index == exiting;
+                    final offset = isExiting
+                        ? -_direction * constraints.maxWidth * progress
+                        : _direction * constraints.maxWidth * (1 - progress);
+                    final opacity = isExiting
+                        ? 1 - (progress * 0.18)
+                        : 0.82 + (progress * 0.18);
+                    return IgnorePointer(
+                      ignoring: isExiting,
+                      child: Transform.translate(
+                        offset: Offset(offset, 0),
+                        child: Opacity(opacity: opacity, child: child),
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Offstage(child: widget.children[index]),
+        ],
+      );
+    },
+  );
+}
+
+class _ScheduleOptionsSheet extends StatefulWidget {
+  const _ScheduleOptionsSheet({
+    required this.data,
+    required this.selectedFacultyId,
+    required this.onFacultySelected,
+    required this.onAddClass,
+    required this.onImport,
+    required this.onManageFaculties,
+    required this.onSettings,
+  });
+
+  final PlannerData data;
+  final String? selectedFacultyId;
+  final ValueChanged<String?> onFacultySelected;
+  final VoidCallback onAddClass;
+  final VoidCallback onImport;
+  final VoidCallback onManageFaculties;
+  final VoidCallback onSettings;
+
+  @override
+  State<_ScheduleOptionsSheet> createState() => _ScheduleOptionsSheetState();
+}
+
+class _ScheduleOptionsSheetState extends State<_ScheduleOptionsSheet> {
+  var _showFilters = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 640),
+      child: Material(
+        color: scheme.surfaceContainerHigh,
+        elevation: 10,
+        shadowColor: scheme.shadow.withValues(alpha: 0.2),
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+          child: _showFilters ? _filtersView() : _actionsView(),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionsView() {
+    final strings = context.strings;
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      key: const ValueKey('actions'),
+      width: double.infinity,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.42),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 12, 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.dashboard_customize_outlined,
+                    color: scheme.onPrimaryContainer,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    strings.scheduleLabel,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  tooltip: strings.cancel,
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          _PopupAction(
+            icon: Icons.filter_alt_outlined,
+            title: strings.filterFaculty,
+            trailing: widget.selectedFacultyId == null
+                ? Text(
+                    strings.all,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelMedium?.copyWith(color: scheme.primary),
+                  )
+                : FacultyBadge(
+                    facultyId: widget.selectedFacultyId!,
+                    compact: true,
+                  ),
+            onTap: () => setState(() => _showFilters = true),
+          ),
+          const Divider(height: 1),
+          _PopupAction(
+            icon: Icons.add_circle_outline_rounded,
+            title: strings.addClass,
+            onTap: widget.onAddClass,
+          ),
+          _PopupAction(
+            icon: Icons.upload_file_outlined,
+            title: strings.importXml,
+            onTap: widget.onImport,
+          ),
+          const Divider(height: 1),
+          _PopupAction(
+            icon: Icons.account_balance_outlined,
+            title: strings.yourFaculties,
+            onTap: widget.onManageFaculties,
+          ),
+          _PopupAction(
+            icon: Icons.settings_outlined,
+            title: strings.settings,
+            onTap: widget.onSettings,
+          ),
+          const SizedBox(height: 22),
+        ],
+      ),
+    );
+  }
+
+  Widget _filtersView() {
+    final strings = context.strings;
+    final maxHeight = (MediaQuery.sizeOf(context).height - 112)
+        .clamp(320.0, 520.0)
+        .toDouble();
+    return SizedBox(
+      key: const ValueKey('filters'),
+      width: double.infinity,
+      height: maxHeight,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.42),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: strings.back,
+                  onPressed: () => setState(() => _showFilters = false),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    strings.filterFaculty,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                _FacultyFilterOption(
+                  selected: widget.selectedFacultyId == null,
+                  icon: Icons.grid_view_rounded,
+                  label: strings.allFaculties,
+                  onTap: () => widget.onFacultySelected(null),
+                ),
+                const Divider(height: 16),
+                ...widget.data.faculties.map(
+                  (faculty) => _FacultyFilterOption(
+                    selected: widget.selectedFacultyId == faculty.id,
+                    badge: FacultyBadge(facultyId: faculty.id, compact: true),
+                    label: faculty.localizedName(strings.languageCode),
+                    onTap: () => widget.onFacultySelected(faculty.id),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PopupAction extends StatelessWidget {
+  const _PopupAction({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 16),
+          Expanded(child: Text(title)),
+          ?trailing,
+        ],
+      ),
+    ),
+  );
+}
+
+class _FacultyFilterOption extends StatelessWidget {
+  const _FacultyFilterOption({
+    required this.selected,
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.badge,
+  });
+
+  final bool selected;
+  final String label;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final Widget? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 36,
+              child: badge ?? Icon(icon, color: scheme.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label)),
+            if (selected)
+              Icon(Icons.check_rounded, color: scheme.primary, size: 20),
+          ],
+        ),
       ),
     );
   }

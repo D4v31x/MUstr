@@ -4,16 +4,19 @@ import 'package:timezone/data/latest.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as timezone;
 
 import '../domain/entities/planner_task.dart';
+import '../domain/entities/important_date.dart';
 
 abstract interface class ReminderScheduler {
   Future<void> initialize();
   Future<void> schedule(PlannerTask task);
   Future<void> cancel(String taskId);
+  Future<void> scheduleImportantDate(ImportantDate importantDate);
+  Future<void> cancelImportantDate(String importantDateId);
 }
 
 class LocalReminderScheduler implements ReminderScheduler {
   LocalReminderScheduler({FlutterLocalNotificationsPlugin? notifications})
-      : _notifications = notifications ?? FlutterLocalNotificationsPlugin();
+    : _notifications = notifications ?? FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _notifications;
 
@@ -34,11 +37,15 @@ class LocalReminderScheduler implements ReminderScheduler {
   Future<void> schedule(PlannerTask task) async {
     await cancel(task.id);
     final reminder = task.reminderAt;
-    if (reminder == null || task.isCompleted || !reminder.isAfter(DateTime.now())) {
+    if (reminder == null ||
+        task.isCompleted ||
+        !reminder.isAfter(DateTime.now())) {
       return;
     }
-    final android = _notifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await android?.requestNotificationsPermission();
     await _notifications.zonedSchedule(
       id: _idFor(task.id),
@@ -61,7 +68,42 @@ class LocalReminderScheduler implements ReminderScheduler {
   }
 
   @override
-  Future<void> cancel(String taskId) => _notifications.cancel(id: _idFor(taskId));
+  Future<void> cancel(String taskId) =>
+      _notifications.cancel(id: _idFor(taskId));
+
+  @override
+  Future<void> scheduleImportantDate(ImportantDate importantDate) async {
+    await cancelImportantDate(importantDate.id);
+    final reminder = importantDate.reminderAt;
+    if (reminder == null || !reminder.isAfter(DateTime.now())) return;
+    final android = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    await android?.requestNotificationsPermission();
+    await _notifications.zonedSchedule(
+      id: _idFor('important-date:${importantDate.id}'),
+      title: 'Important date',
+      body: importantDate.title,
+      scheduledDate: timezone.TZDateTime.from(reminder, timezone.local),
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'important_date_reminders',
+          'Important date reminders',
+          channelDescription: 'Reminders for important academic dates.',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: importantDate.id,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  @override
+  Future<void> cancelImportantDate(String importantDateId) =>
+      _notifications.cancel(id: _idFor('important-date:$importantDateId'));
 
   int _idFor(String taskId) => taskId.hashCode & 0x7fffffff;
 

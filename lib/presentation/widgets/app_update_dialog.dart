@@ -77,7 +77,7 @@ class AppUpdateController extends ChangeNotifier {
       if (silentOnError) {
         phase = AppUpdatePhase.idle;
       } else {
-        error = exception.toString();
+        error = _errorCode(exception);
         phase = AppUpdatePhase.error;
       }
       notifyListeners();
@@ -112,7 +112,7 @@ class AppUpdateController extends ChangeNotifier {
       phase = AppUpdatePhase.downloaded;
       notifyListeners();
     } catch (exception) {
-      error = exception.toString();
+      error = _errorCode(exception);
       phase = AppUpdatePhase.error;
       notifyListeners();
     }
@@ -138,7 +138,7 @@ class AppUpdateController extends ChangeNotifier {
       phase = AppUpdatePhase.downloaded;
       notifyListeners();
     } catch (exception) {
-      error = exception.toString();
+      error = _errorCode(exception);
       phase = AppUpdatePhase.error;
       notifyListeners();
     }
@@ -219,7 +219,7 @@ class AppUpdateStatusBar extends StatelessWidget {
         ),
         AppUpdatePhase.error => (
           Icons.error_outline_rounded,
-          controller.error ?? strings.updateFailed,
+          _errorText(strings, controller.error),
         ),
         AppUpdatePhase.idle => (Icons.info_outline, ''),
       };
@@ -246,39 +246,47 @@ class AppUpdateStatusBar extends StatelessWidget {
 
       return Material(
         color: scheme.surfaceContainerHigh,
-        child: SafeArea(
-          bottom: false,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 6,
+        shadowColor: scheme.shadow.withValues(alpha: 0.18),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-                child: Row(
-                  children: [
-                    Icon(icon, color: scheme.primary, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        label,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
+              Row(
+                children: [
+                  Icon(icon, color: scheme.primary, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    ?action,
-                    if (phase != AppUpdatePhase.downloading &&
-                        phase != AppUpdatePhase.installing &&
-                        phase != AppUpdatePhase.downloaded)
-                      IconButton(
-                        onPressed: controller.dismiss,
-                        tooltip: strings.cancel,
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                  ],
-                ),
+                  ),
+                  ?action,
+                  if (phase != AppUpdatePhase.downloading &&
+                      phase != AppUpdatePhase.installing &&
+                      phase != AppUpdatePhase.downloaded)
+                    IconButton(
+                      onPressed: controller.dismiss,
+                      tooltip: strings.cancel,
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                ],
               ),
-              if (progress != null)
-                LinearProgressIndicator(value: progress == 0 ? null : progress),
+              if (progress != null) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress == 0 ? null : progress,
+                    minHeight: 4,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -287,28 +295,49 @@ class AppUpdateStatusBar extends StatelessWidget {
   );
 }
 
+String _errorCode(Object exception) => switch (exception) {
+  AppUpdateException(kind: final kind) => kind.name,
+  _ => AppUpdateErrorKind.unknown.name,
+};
+
+String _errorText(AppStrings strings, String? code) => switch (code) {
+  'network' => strings.updateNetworkUnavailable,
+  'server' => strings.updateServerUnavailable,
+  'invalidRelease' => strings.updateInvalidRelease,
+  'integrity' => strings.updateIntegrityFailed,
+  _ => strings.updateFailed,
+};
+
 class AppUpdateHost extends StatelessWidget {
   const AppUpdateHost({super.key, required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: appUpdateController,
-    builder: (context, _) {
-      if (!appUpdateController.visible) return child;
-      return Column(
-        children: [
-          const AppUpdateStatusBar(),
-          Expanded(
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: child,
+  Widget build(BuildContext context) => Overlay(
+    initialEntries: [
+      OverlayEntry(
+        builder: (overlayContext) => Stack(
+          children: [
+            Positioned.fill(child: child),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 88,
+              child: SafeArea(
+                top: false,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: const AppUpdateStatusBar(),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
-      );
-    },
+          ],
+        ),
+      ),
+    ],
   );
 }

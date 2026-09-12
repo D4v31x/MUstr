@@ -36,4 +36,14 @@ void main() {
     expect(restored.apkUrl, release.apkUrl);
     expect(restored.sha256Digest, release.sha256Digest);
   });
+
+  test('AppUpdateException preserves a typed user-facing error kind', () {
+    const exception = AppUpdateException(
+      'socket details stay internal',
+      kind: AppUpdateErrorKind.network,
+    );
+
+    expect(exception.kind, AppUpdateErrorKind.network);
+    expect(exception.toString(), 'socket details stay internal');
+  });
 }

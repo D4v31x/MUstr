@@ -473,6 +473,7 @@ class _WeekBoardState extends State<WeekBoard> {
     final fillColor = item.isExam
         ? scheme.error
         : lessonColor(scheme, item.lesson!, widget.data.lessonStyle);
+    final foregroundColor = readableTextColor(fillColor);
     return Positioned(
       left: (minute - startMinute) * scale + 2,
       top: (item.start.weekday - 1) * dayHeight + 4 + index * itemHeight,
@@ -499,7 +500,7 @@ class _WeekBoardState extends State<WeekBoard> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 child: DefaultTextStyle(
                   style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                    color: Colors.white,
+                    color: foregroundColor,
                     height: 1,
                   ),
                   child: Column(
@@ -513,7 +514,7 @@ class _WeekBoardState extends State<WeekBoard> {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color: Colors.white,
+                              color: foregroundColor,
                               fontWeight: FontWeight.w800,
                               height: 1,
                             ),

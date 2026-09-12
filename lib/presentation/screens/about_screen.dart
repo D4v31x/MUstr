@@ -93,12 +93,6 @@ class _AboutScreenState extends State<AboutScreen> {
             body: strings.aboutPurposeBody,
           ),
           const SizedBox(height: 16),
-          _AboutInfo(
-            icon: Icons.shield_outlined,
-            title: strings.aboutPrivacyTitle,
-            body: strings.aboutPrivacyBody,
-          ),
-          const SizedBox(height: 16),
           Material(
             color: scheme.secondaryContainer.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(8),
@@ -197,17 +191,57 @@ class _AboutScreenState extends State<AboutScreen> {
     _logoTaps = 0;
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.calendar_month_rounded),
-        title: Text(context.strings.easterEggTitle),
-        content: Text(context.strings.easterEggBody),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(context.strings.continueLabel),
-          ),
-        ],
+      builder: (_) => const _FridayRecoveryDialog(),
+    );
+  }
+}
+
+class _FridayRecoveryDialog extends StatefulWidget {
+  const _FridayRecoveryDialog();
+
+  @override
+  State<_FridayRecoveryDialog> createState() => _FridayRecoveryDialogState();
+}
+
+class _FridayRecoveryDialogState extends State<_FridayRecoveryDialog> {
+  var _step = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final message = switch (_step) {
+      0 => strings.easterEggBody,
+      1 => strings.easterEggResult,
+      _ => strings.easterEggComplete,
+    };
+    final actionLabel = _step == 0
+        ? strings.easterEggScan
+        : _step == 1
+        ? strings.easterEggRescue
+        : strings.continueLabel;
+    return AlertDialog(
+      icon: Icon(
+        _step < 2 ? Icons.travel_explore_rounded : Icons.coffee_rounded,
       ),
+      title: Text(strings.easterEggTitle),
+      content: Text(message),
+      actions: [
+        if (_step > 0)
+          TextButton(
+            onPressed: () => setState(() => _step = 0),
+            child: Text(strings.easterEggScan),
+          ),
+        FilledButton(
+          onPressed: () {
+            if (_step == 2) {
+              Navigator.of(context).pop();
+            } else {
+              setState(() => _step += 1);
+            }
+          },
+          child: Text(actionLabel),
+        ),
+      ],
     );
   }
 }

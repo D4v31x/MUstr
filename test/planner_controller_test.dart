@@ -9,6 +9,7 @@ import 'package:muni_timetable/domain/entities/faculty.dart';
 import 'package:muni_timetable/domain/entities/app_language.dart';
 import 'package:muni_timetable/domain/entities/app_theme_mode.dart';
 import 'package:muni_timetable/domain/entities/exam.dart';
+import 'package:muni_timetable/domain/entities/important_date.dart';
 import 'package:muni_timetable/domain/entities/timetable.dart';
 import 'package:muni_timetable/presentation/providers/planner_providers.dart';
 import 'package:muni_timetable/services/notification_service.dart';
@@ -81,6 +82,19 @@ void main() {
       expect(repository.data.examPeriods.single.endDate, DateTime(2027, 1, 29));
       await controller.deleteExam(exam.id);
       expect(repository.data.exams, isEmpty);
+
+      final registration = controller.newImportantDate(
+        title: 'Course registration opens',
+        date: DateTime(2026, 11, 1),
+        timeMinute: 9 * 60,
+        reminderAt: DateTime(2026, 10, 31, 9),
+        facultyId: null,
+      );
+      await controller.saveImportantDate(registration);
+      expect(repository.data.importantDates.single.title, registration.title);
+      expect(repository.data.importantDates.single.timeMinute, 9 * 60);
+      await controller.deleteImportantDate(registration.id);
+      expect(repository.data.importantDates, isEmpty);
 
       await controller.deleteTask(task.id);
       expect(repository.data.tasks, isEmpty);
@@ -518,6 +532,23 @@ class _FakeRepository implements PlannerRepository {
   );
 
   @override
+  Future<void> saveImportantDate(ImportantDate importantDate) async =>
+      data = _copy(
+        importantDates: [
+          ...data.importantDates.where((item) => item.id != importantDate.id),
+          importantDate,
+        ],
+      );
+
+  @override
+  Future<void> deleteImportantDate(String importantDateId) async =>
+      data = _copy(
+        importantDates: data.importantDates
+            .where((item) => item.id != importantDateId)
+            .toList(),
+      );
+
+  @override
   Future<void> saveSubjectNotes(String subjectId, String notes) async =>
       data = PlannerData(
         timetable: data.timetable,
@@ -568,6 +599,7 @@ class _FakeRepository implements PlannerRepository {
   PlannerData _copy({
     List<Exam>? exams,
     List<ExamPeriod>? examPeriods,
+    List<ImportantDate>? importantDates,
     LessonStyleSettings? lessonStyle,
     AppThemeMode? themeMode,
     bool? remindersEnabled,
@@ -582,6 +614,7 @@ class _FakeRepository implements PlannerRepository {
     tasks: data.tasks,
     exams: exams ?? data.exams,
     examPeriods: examPeriods ?? data.examPeriods,
+    importantDates: importantDates ?? data.importantDates,
     lessonStyle: lessonStyle ?? data.lessonStyle,
     themeMode: themeMode ?? data.themeMode,
     remindersEnabled: remindersEnabled ?? data.remindersEnabled,
@@ -600,6 +633,8 @@ class _FakeRepository implements PlannerRepository {
 class _FakeScheduler implements ReminderScheduler {
   final scheduled = <PlannerTask>[];
   final cancelled = <String>[];
+  final importantDates = <ImportantDate>[];
+  final cancelledImportantDates = <String>[];
 
   @override
   Future<void> cancel(String taskId) async => cancelled.add(taskId);
@@ -609,4 +644,12 @@ class _FakeScheduler implements ReminderScheduler {
 
   @override
   Future<void> schedule(PlannerTask task) async => scheduled.add(task);
+
+  @override
+  Future<void> scheduleImportantDate(ImportantDate importantDate) async =>
+      importantDates.add(importantDate);
+
+  @override
+  Future<void> cancelImportantDate(String importantDateId) async =>
+      cancelledImportantDates.add(importantDateId);
 }

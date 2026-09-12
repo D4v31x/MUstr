@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/repositories/planner_repository.dart';
+import '../../domain/entities/important_date.dart';
 import '../../domain/entities/planner_task.dart';
 import '../../domain/entities/timetable.dart';
 import '../widgets/lesson_detail_sheet.dart';
@@ -50,6 +51,14 @@ class _TodayScreenState extends State<TodayScreen> {
     final next = lessons
         .where((lesson) => lesson.startTime.isAfter(now))
         .firstOrNull;
+    final importantDates = widget.data.importantDates
+        .where((importantDate) => _sameDay(importantDate.date, _selectedDay))
+        .toList();
+    final timelineItems = <_TodayTimelineItem>[
+      for (final lesson in lessons) _TodayTimelineItem.lesson(lesson),
+      for (final importantDate in importantDates)
+        _TodayTimelineItem.importantDate(importantDate),
+    ]..sort((first, second) => first.start.compareTo(second.start));
     final upcomingTasks = widget.data.tasks
         .where((task) => !task.isCompleted)
         .take(3)
@@ -81,7 +90,6 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ),
             IconButton.filledTonal(
-              tooltip: strings.chooseDay,
               onPressed: _pickDay,
               icon: const Icon(Icons.calendar_month_outlined),
             ),
@@ -104,16 +112,18 @@ class _TodayScreenState extends State<TodayScreen> {
         const SizedBox(height: 32),
         _SectionHeader(title: strings.timeline, icon: Icons.schedule_outlined),
         const SizedBox(height: 12),
-        if (lessons.isEmpty)
+        if (timelineItems.isEmpty)
           const _EmptyDay()
         else
-          ...lessons.map(
-            (lesson) => _LessonTile(
-              lesson: lesson,
-              style: widget.data.lessonStyle,
-              isActive: lesson == active,
-              showRoom: widget.data.showRoomInSchedule,
-            ),
+          ...timelineItems.map(
+            (item) => item.lesson == null
+                ? _ImportantDateScheduleTile(importantDate: item.importantDate!)
+                : _LessonTile(
+                    lesson: item.lesson!,
+                    style: widget.data.lessonStyle,
+                    isActive: item.lesson == active,
+                    showRoom: widget.data.showRoomInSchedule,
+                  ),
           ),
         const SizedBox(height: 28),
         _SectionHeader(title: strings.dueSoon, icon: Icons.assignment_outlined),
@@ -147,6 +157,86 @@ class _TodayScreenState extends State<TodayScreen> {
       lastDate: lastDate,
     );
     if (day != null) setState(() => _selectedDay = day);
+  }
+}
+
+class _TodayTimelineItem {
+  _TodayTimelineItem.lesson(Lesson lesson)
+    : lesson = lesson,
+      importantDate = null,
+      start = lesson.startTime;
+
+  _TodayTimelineItem.importantDate(ImportantDate importantDate)
+    : lesson = null,
+      importantDate = importantDate,
+      start = importantDate.scheduledAt;
+
+  final Lesson? lesson;
+  final ImportantDate? importantDate;
+  final DateTime start;
+}
+
+class _ImportantDateScheduleTile extends StatelessWidget {
+  const _ImportantDateScheduleTile({required this.importantDate});
+
+  final ImportantDate importantDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 52,
+            child: Text(
+              importantDate.timeMinute == null
+                  ? context.strings.allDay
+                  : timeLabel(importantDate.scheduledAt),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          Container(
+            width: 4,
+            height: 64,
+            decoration: BoxDecoration(
+              color: scheme.tertiary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.strings.importantDate.toUpperCase(),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: scheme.tertiary),
+                ),
+                Text(
+                  importantDate.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (importantDate.reminderAt != null)
+                  Text(
+                    context.strings.reminderSet,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Icon(Icons.bookmark_outline_rounded, color: scheme.tertiary),
+        ],
+      ),
+    );
   }
 }
 
@@ -194,6 +284,12 @@ class _FocusCard extends StatelessWidget {
       );
     }
     final lessonAccent = lessonColor(scheme, lesson!, style);
+    const cardColor = Color(0xff005ca9);
+    final codeColor = readableAccentColor(
+      lessonAccent,
+      cardColor,
+      fallback: Colors.white,
+    );
     final remaining = isActive
         ? lesson!.endTime.difference(now)
         : lesson!.startTime.difference(now);
@@ -201,7 +297,7 @@ class _FocusCard extends StatelessWidget {
         ? context.strings.inProgress
         : context.strings.upNext;
     return Card(
-      color: const Color(0xff005ca9),
+      color: cardColor,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => showLessonDetails(context, lesson!, style: style),
@@ -234,7 +330,7 @@ class _FocusCard extends StatelessWidget {
                 timetableCodeLabel(lesson!),
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(color: lessonAccent),
+                ).textTheme.titleMedium?.copyWith(color: codeColor),
               ),
               Text(
                 lesson!.courseName,
@@ -278,7 +374,13 @@ class _LessonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = lessonColor(Theme.of(context).colorScheme, lesson, style);
+    final scheme = Theme.of(context).colorScheme;
+    final color = lessonColor(scheme, lesson, style);
+    final codeColor = readableAccentColor(
+      color,
+      scheme.surface,
+      fallback: scheme.onSurface,
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -311,7 +413,7 @@ class _LessonTile extends StatelessWidget {
                     timetableCodeLabel(lesson),
                     style: Theme.of(
                       context,
-                    ).textTheme.labelLarge?.copyWith(color: color),
+                    ).textTheme.labelLarge?.copyWith(color: codeColor),
                   ),
                   Text(
                     lesson.courseName,

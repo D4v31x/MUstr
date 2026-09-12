@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -47,10 +48,16 @@ class DownloadedAppRelease {
 
 enum ApkInstallResult { started, permissionRequired }
 
+enum AppUpdateErrorKind { network, server, invalidRelease, integrity, unknown }
+
 class AppUpdateException implements Exception {
-  const AppUpdateException(this.message);
+  const AppUpdateException(
+    this.message, {
+    this.kind = AppUpdateErrorKind.unknown,
+  });
 
   final String message;
+  final AppUpdateErrorKind kind;
 
   @override
   String toString() => message;
@@ -64,6 +71,7 @@ class AppUpdateService {
 
     final packageInfo = await PackageInfo.fromPlatform();
     final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 15);
     try {
       final request = await client.getUrl(Uri.parse(_latestReleaseUri));
       request.headers
@@ -75,6 +83,7 @@ class AppUpdateService {
       if (response.statusCode != HttpStatus.ok) {
         throw AppUpdateException(
           'GitHub returned HTTP ${response.statusCode}.',
+          kind: AppUpdateErrorKind.server,
         );
       }
 
@@ -98,12 +107,16 @@ class AppUpdateService {
       if (apk == null) {
         throw const AppUpdateException(
           'The latest release does not contain an APK.',
+          kind: AppUpdateErrorKind.invalidRelease,
         );
       }
 
       final rawUrl = apk['browser_download_url'] as String?;
       if (rawUrl == null || !rawUrl.startsWith('https://')) {
-        throw const AppUpdateException('The release APK URL is invalid.');
+        throw const AppUpdateException(
+          'The release APK URL is invalid.',
+          kind: AppUpdateErrorKind.invalidRelease,
+        );
       }
       final rawDigest = apk['digest'] as String?;
       return AppRelease(
@@ -116,6 +129,16 @@ class AppUpdateService {
       );
     } on AppUpdateException {
       rethrow;
+    } on SocketException catch (error) {
+      throw AppUpdateException(
+        'Network connection failed: $error',
+        kind: AppUpdateErrorKind.network,
+      );
+    } on TimeoutException catch (error) {
+      throw AppUpdateException(
+        'Network connection timed out: $error',
+        kind: AppUpdateErrorKind.network,
+      );
     } catch (error) {
       throw AppUpdateException('Could not check for updates: $error');
     } finally {
@@ -128,6 +151,7 @@ class AppUpdateService {
     required void Function(double progress) onProgress,
   }) async {
     final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 15);
     IOSink? sink;
     try {
       final request = await client.getUrl(release.apkUrl);
@@ -136,6 +160,7 @@ class AppUpdateService {
       if (response.statusCode != HttpStatus.ok) {
         throw AppUpdateException(
           'APK download returned HTTP ${response.statusCode}.',
+          kind: AppUpdateErrorKind.server,
         );
       }
 
@@ -161,6 +186,7 @@ class AppUpdateService {
           await partial.delete();
           throw const AppUpdateException(
             'The downloaded APK failed its SHA-256 verification.',
+            kind: AppUpdateErrorKind.integrity,
           );
         }
       }
@@ -180,6 +206,16 @@ class AppUpdateService {
       return file;
     } on AppUpdateException {
       rethrow;
+    } on SocketException catch (error) {
+      throw AppUpdateException(
+        'Network connection failed: $error',
+        kind: AppUpdateErrorKind.network,
+      );
+    } on TimeoutException catch (error) {
+      throw AppUpdateException(
+        'Network connection timed out: $error',
+        kind: AppUpdateErrorKind.network,
+      );
     } catch (error) {
       throw AppUpdateException('Could not download the update: $error');
     } finally {

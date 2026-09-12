@@ -12,6 +12,7 @@ import '../../domain/entities/faculty.dart';
 import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/entities/exam.dart';
+import '../../domain/entities/important_date.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/notification_service.dart';
 
@@ -40,6 +41,11 @@ class PlannerController extends AsyncNotifier<PlannerData> {
       // The planner remains usable if a platform has no notification support.
     }
     final data = await _repository.load();
+    if (data.remindersEnabled) {
+      for (final importantDate in data.importantDates) {
+        unawaited(_scheduler.scheduleImportantDate(importantDate));
+      }
+    }
     unawaited(updateScheduleWidget(data));
     return data;
   }
@@ -263,6 +269,55 @@ class PlannerController extends AsyncNotifier<PlannerData> {
       ),
     );
     await _repository.saveExamPeriod(period);
+    await _refresh();
+  }
+
+  ImportantDate newImportantDate({
+    required String title,
+    required DateTime date,
+    required int? timeMinute,
+    required DateTime? reminderAt,
+    required String? facultyId,
+  }) => ImportantDate(
+    id: _uuid.v4(),
+    title: title,
+    date: DateTime(date.year, date.month, date.day),
+    timeMinute: timeMinute,
+    reminderAt: reminderAt,
+    facultyId: facultyId,
+    createdAt: DateTime.now(),
+  );
+
+  Future<void> saveImportantDate(ImportantDate importantDate) async {
+    _publish(
+      _currentData.copyWith(
+        importantDates: [
+          ..._currentData.importantDates.where(
+            (item) => item.id != importantDate.id,
+          ),
+          importantDate,
+        ],
+      ),
+    );
+    await _repository.saveImportantDate(importantDate);
+    if (_currentData.remindersEnabled) {
+      await _scheduler.scheduleImportantDate(importantDate);
+    } else {
+      await _scheduler.cancelImportantDate(importantDate.id);
+    }
+    await _refresh();
+  }
+
+  Future<void> deleteImportantDate(String importantDateId) async {
+    _publish(
+      _currentData.copyWith(
+        importantDates: _currentData.importantDates
+            .where((item) => item.id != importantDateId)
+            .toList(),
+      ),
+    );
+    await _scheduler.cancelImportantDate(importantDateId);
+    await _repository.deleteImportantDate(importantDateId);
     await _refresh();
   }
 
