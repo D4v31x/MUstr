@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/widget_background"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="56dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="20dp">
+
+    <TextView
+        android:id="@+id/config_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/muni_bold"
+        android:text="@string/config_title"
+        android:textColor="@color/widget_title"
+        android:textSize="22sp" />
+
+    <TextView
+        android:id="@+id/config_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="28dp"
+        android:text="@string/config_subtitle"
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:id="@+id/config_actions_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/config_select_all"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@null"
+            android:text="@string/config_select_all"
+            android:textAllCaps="false"
+            android:textColor="@color/widget_title" />
+
+        <Button
+            android:id="@+id/config_clear_all"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@null"
+            android:text="@string/config_clear_all"
+            android:textAllCaps="false"
+            android:textColor="@color/widget_title" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/config_timetable_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/config_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/config_save_button"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:text="@string/config_save"
+        android:textAllCaps="false"
+        android:textColor="@color/widget_chip_text"
+        android:textStyle="bold" />
+</LinearLayout>

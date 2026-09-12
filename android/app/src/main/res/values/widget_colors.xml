@@ -1,0 +1,14 @@
+<resources>
+    <color name="widget_background">#FFFFFF</color>
+    <color name="widget_title">#005CA9</color>
+    <color name="widget_text_primary">#1B1B1F</color>
+    <color name="widget_text_secondary">#5F6368</color>
+    <color name="widget_divider">#E1E3E6</color>
+    <color name="widget_chip_background">#005CA9</color>
+    <color name="widget_chip_today_background">#FF7300</color>
+    <color name="widget_chip_text">#FFFFFF</color>
+    <color name="widget_lesson_subtitle">#CCFFFFFF</color>
+    <color name="widget_lesson_divider">#55FFFFFF</color>
+    <color name="widget_header_background">#EEF5FC</color>
+    <color name="widget_nav_background">#DCEAF8</color>
+</resources>

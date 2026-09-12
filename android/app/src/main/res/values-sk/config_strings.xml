@@ -1,0 +1,11 @@
+<resources>
+    <string name="config_title">Zobraziť výučbu z</string>
+    <string name="config_subtitle">Vyberte, ktoré importované rozvrhy sa majú zobraziť vo widgete</string>
+    <string name="config_select_all">Vybrať všetko</string>
+    <string name="config_clear_all">Zrušiť výber</string>
+    <string name="config_save">Uložiť</string>
+    <string name="config_continue">Pokračovať</string>
+    <string name="config_no_timetables">Zatiaľ nemáte žiadne importované rozvrhy. Otvorte aplikáciu, importujte rozvrh a potom widget pridajte znova.</string>
+    <string name="config_select_at_least_one">Vyberte aspoň jeden rozvrh</string>
+    <string name="widget_no_more_classes">Tento týždeň už žiadna výučba</string>
+</resources>

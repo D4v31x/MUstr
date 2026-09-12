@@ -1,0 +1,11 @@
+<resources>
+    <string name="config_title">Show classes from</string>
+    <string name="config_subtitle">Choose which of your imported timetables appear in the widget</string>
+    <string name="config_select_all">Select all</string>
+    <string name="config_clear_all">Clear all</string>
+    <string name="config_save">Save</string>
+    <string name="config_continue">Continue</string>
+    <string name="config_no_timetables">No imported timetables found yet. Open the app, import a timetable, then add this widget again.</string>
+    <string name="config_select_at_least_one">Select at least one timetable</string>
+    <string name="widget_no_more_classes">No more classes this week</string>
+</resources>
