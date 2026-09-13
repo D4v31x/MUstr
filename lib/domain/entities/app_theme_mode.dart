@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 enum AppThemeMode {
   system('system'),
@@ -24,8 +24,13 @@ enum AppThemeMode {
 enum AppColorTheme {
   materialYou('material_you', null),
   muniBlue('muni_blue', Color(0xff005ca9)),
+  ocean('ocean', Color(0xff0369a1)),
   emerald('emerald', Color(0xff047857)),
-  coral('coral', Color(0xffbe123c));
+  lime('lime', Color(0xff4d7c0f)),
+  amber('amber', Color(0xffb45309)),
+  coral('coral', Color(0xffbe123c)),
+  violet('violet', Color(0xff6d28d9)),
+  rose('rose', Color(0xffbe185d));
 
   const AppColorTheme(this.code, this.seedColor);
 

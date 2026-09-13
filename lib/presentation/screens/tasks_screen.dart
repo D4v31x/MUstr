@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -88,6 +88,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 Expanded(
                   child: DropdownButtonFormField<TaskPriority?>(
                     initialValue: _priority,
+                    isExpanded: true,
                     menuMaxHeight: 320,
                     decoration: InputDecoration(
                       labelText: strings.priority,
@@ -96,12 +97,20 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     items: [
                       DropdownMenuItem(
                         value: null,
-                        child: Text(strings.anyPriority),
+                        child: Text(
+                          strings.anyPriority,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       ...TaskPriority.values.map(
                         (priority) => DropdownMenuItem(
                           value: priority,
-                          child: Text(_priorityLabel(strings, priority)),
+                          child: Text(
+                            _priorityLabel(strings, priority),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],
@@ -112,6 +121,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     initialValue: _subjectId,
+                    isExpanded: true,
                     menuMaxHeight: 320,
                     decoration: InputDecoration(
                       labelText: strings.subject,
@@ -120,12 +130,20 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     items: [
                       DropdownMenuItem(
                         value: null,
-                        child: Text(strings.allSubjects),
+                        child: Text(
+                          strings.allSubjects,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       ...widget.data.subjects.map(
                         (subject) => DropdownMenuItem(
                           value: subject.id,
-                          child: Text(subject.courseCode),
+                          child: Text(
+                            subject.courseCode,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],

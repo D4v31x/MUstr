@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/timetable.dart';
 import 'planner_formatters.dart';
 import 'faculty_badge.dart';
+import 'change_confirmation_dialog.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
 
@@ -15,6 +16,9 @@ Future<void> showLessonDetails(
   context: context,
   showDragHandle: true,
   isScrollControlled: true,
+  constraints: BoxConstraints(
+    maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+  ),
   builder: (_) => _LessonDetails(lesson: lesson, style: style),
 );
 
@@ -183,6 +187,7 @@ class _LessonDetailsState extends ConsumerState<_LessonDetails> {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () async {
+                    if (!await confirmEdit(context)) return;
                     await ref
                         .read(plannerProvider.notifier)
                         .saveLessonPresentation(_editedLesson);
@@ -293,16 +298,14 @@ class _AttendanceBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final label = switch (lesson.kind) {
-      LessonKind.seminar =>
-        '${strings.seminarDetails(lesson.seminarGroup)} - ${strings.mandatory.toLowerCase()}',
-      LessonKind.lecture =>
-        '${strings.lecture} - ${strings.recommended.toLowerCase()}',
+      LessonKind.seminar => strings.seminarDetails(lesson.seminarGroup),
+      LessonKind.lecture => strings.lecture,
       LessonKind.event => strings.event,
     };
     return Chip(
       avatar: Icon(
-        lesson.isMandatory
-            ? Icons.priority_high_rounded
+        lesson.kind == LessonKind.seminar
+            ? Icons.groups_outlined
             : Icons.auto_stories_outlined,
         size: 18,
       ),

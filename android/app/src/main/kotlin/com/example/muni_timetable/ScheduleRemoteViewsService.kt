@@ -144,8 +144,12 @@ private fun buildItems(context: Context, appWidgetId: Int): List<ScheduleListIte
         val timetableId = fields[7]
         val isToday = fields[8]
         val kind = fields[9]
+        val endAtMillis = fields[10].toLongOrNull()
         val passesFilter = kind != "lesson" || selectedTimetables == null || selectedTimetables.contains(timetableId)
-        if (!passesFilter) return@forEach
+        val isFinishedLesson = kind == "lesson" &&
+            endAtMillis != null &&
+            endAtMillis <= System.currentTimeMillis()
+        if (!passesFilter || isFinishedLesson) return@forEach
         val dayKey = "$day|$dateLabel"
         if (dayKey != lastDayKey) {
             result.add(ScheduleListItem.DayHeader("$day - $dateLabel"))

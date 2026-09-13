@@ -614,10 +614,6 @@ class SqlitePlannerRepository implements PlannerRepository {
         'key': 'exam_period_color',
         'value': '${style.examPeriodColorValue}',
       }, conflictAlgorithm: ConflictAlgorithm.replace);
-      await transaction.insert('app_settings', {
-        'key': 'subject_colors',
-        'value': jsonEncode(style.subjectColorValues),
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
     });
   }
 
@@ -890,14 +886,13 @@ class SqlitePlannerRepository implements PlannerRepository {
   Future<LessonStyleSettings> _readLessonStyle(Database db) async {
     final rows = await db.query(
       'app_settings',
-      where: 'key IN (?, ?, ?, ?, ?, ?)',
+      where: 'key IN (?, ?, ?, ?, ?)',
       whereArgs: [
         'lecture_color',
         'seminar_color',
         'exam_color',
         'important_date_color',
         'exam_period_color',
-        'subject_colors',
       ],
     );
     final values = {
@@ -910,23 +905,7 @@ class SqlitePlannerRepository implements PlannerRepository {
       examColorValue: values['exam_color'] ?? 0xffba1a1a,
       importantDateColorValue: values['important_date_color'] ?? 0xff6750a4,
       examPeriodColorValue: values['exam_period_color'] ?? 0xff006c65,
-      subjectColorValues: _readSubjectColors(rows),
     );
-  }
-
-  Map<String, int> _readSubjectColors(List<Map<String, Object?>> rows) {
-    final encoded = rows
-        .where((row) => row['key'] == 'subject_colors')
-        .map((row) => row['value'] as String)
-        .firstOrNull;
-    if (encoded == null) return const {};
-    try {
-      return (jsonDecode(encoded) as Map<String, dynamic>).map(
-        (key, value) => MapEntry(key, value as int),
-      );
-    } on FormatException {
-      return const {};
-    }
   }
 
   Future<Map<String, _LessonPreference>> _readLessonPreferences(

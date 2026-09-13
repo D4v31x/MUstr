@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -37,11 +37,7 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        checkForAppUpdate(
-          context,
-          silentWhenCurrent: true,
-          silentOnError: true,
-        );
+        checkForAppUpdate(silentWhenCurrent: true, silentOnError: true);
       }
     });
   }
@@ -140,7 +136,7 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
                   'MUstr',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontFamily: 'MuniBold',
-                    color: const Color(0xff005ca9),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 Text(

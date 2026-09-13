@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.res.Configuration
 import java.util.Locale
 
-// Each cached line: day|dateLabel|startTime|endTime|title|location|colorHex|timetableId|isToday(0/1)|kind
-internal const val SCHEDULE_FIELD_COUNT = 10
+// Each cached line: day|dateLabel|startTime|endTime|title|location|colorHex|timetableId|isToday(0/1)|kind|endAtMillis
+internal const val SCHEDULE_FIELD_COUNT = 11
 
 // Only "current" (0) and "next" (1) week data is precomputed and cached by Dart.
 internal const val SCHEDULE_MAX_WEEK_OFFSET = 1

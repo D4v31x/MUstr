@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
@@ -78,27 +78,6 @@ class ScheduleColorsScreen extends ConsumerWidget {
             onTap: () =>
                 _openEditor(context, currentData, _ColorTarget.examPeriod),
           ),
-          if (currentData.subjects.isNotEmpty)
-            _ColorCategoryTile(
-              icon: Icons.menu_book_outlined,
-              title: strings.subjectColors,
-              colors: currentData.subjects
-                  .map(
-                    (subject) =>
-                        style.colorForSubject(subject.id) ??
-                        eventColor(
-                          Theme.of(context).colorScheme,
-                          subject.faculty,
-                          subject.id,
-                        ).toARGB32(),
-                  )
-                  .toList(),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => _SubjectColorsScreen(data: currentData),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -178,18 +157,19 @@ class _ClassColorsEditor extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         children: [
           _PreviewSection(
-            child: Column(
-              children: [
-                _ScheduleEntryPreview(
+            child: _WeekBoardPreview(
+              entries: [
+                _WeekPreviewEntry(
                   color: Color(style.lectureColorValue),
-                  label: strings.lecture,
-                  title: 'PB151',
+                  title: 'Computer systems',
+                  detail: 'PB151',
+                  startFraction: 0.12,
                 ),
-                const SizedBox(height: 12),
-                _ScheduleEntryPreview(
+                _WeekPreviewEntry(
                   color: Color(style.seminarColorValue),
-                  label: strings.seminar,
-                  title: 'PB151 / 02',
+                  title: 'Computer systems',
+                  detail: 'PB151 / 02',
+                  startFraction: 0.5,
                 ),
               ],
             ),
@@ -216,74 +196,13 @@ class _ClassColorsEditor extends ConsumerWidget {
   }
 }
 
-class _SubjectColorsScreen extends ConsumerWidget {
-  const _SubjectColorsScreen({required this.data});
-
-  final PlannerData data;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentData = _plannerData(ref, data);
-    final style = currentData.lessonStyle;
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: Text(context.strings.subjectColors)),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        itemCount: currentData.subjects.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final subject = currentData.subjects[index];
-          final color = Color(
-            style.colorForSubject(subject.id) ??
-                eventColor(scheme, subject.faculty, subject.id).toARGB32(),
-          );
-          return Card(
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: Container(
-                width: 16,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              title: Text(subject.courseCode),
-              subtitle: Text(
-                subject.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => _ColorEditor(
-                    data: currentData,
-                    target: _ColorTarget.subject,
-                    subject: subject,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-enum _ColorTarget { exam, importantDate, examPeriod, subject }
+enum _ColorTarget { exam, importantDate, examPeriod }
 
 class _ColorEditor extends ConsumerWidget {
-  const _ColorEditor({required this.data, required this.target, this.subject});
+  const _ColorEditor({required this.data, required this.target});
 
   final PlannerData data;
   final _ColorTarget target;
-  final Subject? subject;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -294,60 +213,38 @@ class _ColorEditor extends ConsumerWidget {
       _ColorTarget.exam => strings.exam,
       _ColorTarget.importantDate => strings.importantDate,
       _ColorTarget.examPeriod => strings.examPeriod,
-      _ColorTarget.subject => subject!.courseCode,
     };
     final selected = switch (target) {
       _ColorTarget.exam => style.examColorValue,
       _ColorTarget.importantDate => style.importantDateColorValue,
       _ColorTarget.examPeriod => style.examPeriodColorValue,
-      _ColorTarget.subject =>
-        style.colorForSubject(subject!.id) ??
-            eventColor(
-              Theme.of(context).colorScheme,
-              subject!.faculty,
-              subject!.id,
-            ).toARGB32(),
     };
-    final hasOverride =
-        target == _ColorTarget.subject &&
-        style.colorForSubject(subject!.id) != null;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        actions: [
-          if (hasOverride)
-            IconButton(
-              tooltip: strings.useAutomaticColor,
-              icon: const Icon(Icons.restart_alt),
-              onPressed: () {
-                final colors = Map<String, int>.from(style.subjectColorValues)
-                  ..remove(subject!.id);
-                ref
-                    .read(plannerProvider.notifier)
-                    .saveLessonStyle(
-                      style.copyWith(subjectColorValues: colors),
-                    );
-              },
-            ),
-        ],
+    final preview = switch (target) {
+      _ColorTarget.exam => _WeekPreviewEntry(
+        color: Color(selected),
+        title: strings.exam,
+        detail: 'Programming final',
+        startFraction: 0.25,
       ),
+      _ColorTarget.importantDate => _WeekPreviewEntry(
+        color: Color(selected),
+        title: strings.importantDate,
+        detail: 'Course registration',
+        startFraction: 0.25,
+      ),
+      _ColorTarget.examPeriod => _WeekPreviewEntry(
+        color: Color(selected),
+        title: strings.examPeriod,
+        detail: '14 Dec - 29 Jan',
+        startFraction: 0.25,
+      ),
+    };
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         children: [
-          _PreviewSection(
-            child: target == _ColorTarget.examPeriod
-                ? _ExamPeriodPreview(color: Color(selected), title: title)
-                : _ScheduleEntryPreview(
-                    color: Color(selected),
-                    label: title,
-                    title: target == _ColorTarget.subject
-                        ? subject!.courseCode
-                        : title,
-                    subtitle: target == _ColorTarget.subject
-                        ? subject!.name
-                        : null,
-                  ),
-          ),
+          _PreviewSection(child: _WeekBoardPreview(entries: [preview])),
           const SizedBox(height: 28),
           _ColorPicker(
             label: strings.classColor,
@@ -366,10 +263,6 @@ class _ColorEditor extends ConsumerWidget {
         importantDateColorValue: color,
       ),
       _ColorTarget.examPeriod => style.copyWith(examPeriodColorValue: color),
-      _ColorTarget.subject => style.copyWith(
-        subjectColorValues: Map<String, int>.from(style.subjectColorValues)
-          ..[subject!.id] = color,
-      ),
     };
     ref.read(plannerProvider.notifier).saveLessonStyle(updated);
   }
@@ -382,100 +275,159 @@ class _PreviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: child,
   );
 }
 
-class _ScheduleEntryPreview extends StatelessWidget {
-  const _ScheduleEntryPreview({
+class _WeekBoardPreview extends StatelessWidget {
+  const _WeekBoardPreview({required this.entries});
+
+  final List<_WeekPreviewEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 126,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 30,
+            child: Row(
+              children: [
+                const SizedBox(width: 52),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: ['08:00', '09:00', '10:00']
+                        .map(
+                          (time) => Text(
+                            time,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 52,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'MON',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text('14', style: Theme.of(context).textTheme.titleSmall),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Stack(
+                      children: [
+                        for (var column = 0; column < 4; column++)
+                          Positioned(
+                            left: constraints.maxWidth * column / 3,
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 1,
+                              color: scheme.outlineVariant,
+                            ),
+                          ),
+                        for (final entry in entries)
+                          Positioned(
+                            left:
+                                constraints.maxWidth * entry.startFraction + 2,
+                            top: 12,
+                            width: (constraints.maxWidth * 0.38).clamp(
+                              68,
+                              constraints.maxWidth - 4,
+                            ),
+                            height: 34,
+                            child: Material(
+                              color: entry.color,
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
+                                child: DefaultTextStyle(
+                                  style: Theme.of(context).textTheme.labelSmall!
+                                      .copyWith(
+                                        color: readableTextColor(entry.color),
+                                        height: 1,
+                                      ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        entry.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium
+                                            ?.copyWith(
+                                              color: readableTextColor(
+                                                entry.color,
+                                              ),
+                                              fontWeight: FontWeight.w800,
+                                              height: 1,
+                                            ),
+                                      ),
+                                      Text(
+                                        entry.detail,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekPreviewEntry {
+  const _WeekPreviewEntry({
     required this.color,
-    required this.label,
     required this.title,
-    this.subtitle,
+    required this.detail,
+    required this.startFraction,
   });
 
   final Color color;
-  final String label;
   final String title;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        width: 52,
-        child: Text('09:00', style: Theme.of(context).textTheme.labelLarge),
-      ),
-      Container(
-        width: 4,
-        height: 68,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: readableAccentColor(
-                  color,
-                  Theme.of(context).colorScheme.surfaceContainerLow,
-                  fallback: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ),
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            if (subtitle != null)
-              Text(
-                subtitle!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
-class _ExamPeriodPreview extends StatelessWidget {
-  const _ExamPeriodPreview({required this.color, required this.title});
-
-  final Color color;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(Icons.event_available_outlined, color: color),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 2),
-            Text(
-              '14 Dec - 29 Jan',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
+  final String detail;
+  final double startFraction;
 }
 
 class _ColorPicker extends StatelessWidget {

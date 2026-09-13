@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 enum AppLanguage {
   english('en', 'English'),
@@ -13,7 +13,7 @@ enum AppLanguage {
   Locale get locale => Locale(code);
 
   static AppLanguage fromCode(String? code) => AppLanguage.values.firstWhere(
-        (language) => language.code == code,
-        orElse: () => AppLanguage.english,
-      );
+    (language) => language.code == code,
+    orElse: () => AppLanguage.english,
+  );
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AppStrings {
   const AppStrings._(this._languageCode);
@@ -25,6 +25,8 @@ class AppStrings {
   String get saveImportantDate => _text('saveImportantDate');
   String get editImportantDate => _text('editImportantDate');
   String get deleteImportantDate => _text('deleteImportantDate');
+  String deleteImportantDateMessage(String title) =>
+      _format('deleteImportantDateMessage', title);
   String get eventTime => _text('eventTime');
   String get allDay => _text('allDay');
   String get reminderSet => _text('reminderSet');
@@ -44,6 +46,7 @@ class AppStrings {
   String get noExams => _text('noExams');
   String get independentExam => _text('independentExam');
   String get deleteExam => _text('deleteExam');
+  String deleteExamMessage(String title) => _format('deleteExamMessage', title);
   String get addExamTitle => _text('addExamTitle');
   String get examTitle => _text('examTitle');
   String get examTitleRequired => _text('examTitleRequired');
@@ -76,6 +79,8 @@ class AppStrings {
   String get dueOnNextClass => _text('dueOnNextClass');
   String notesFor(String courseCode) => _format('notesFor', courseCode);
   String get save => _text('save');
+  String get saveChanges => _text('saveChanges');
+  String get saveChangesMessage => _text('saveChangesMessage');
   String get newTask => _text('newTask');
   String get editTask => _text('editTask');
   String get taskTitle => _text('taskTitle');
@@ -155,8 +160,13 @@ class AppStrings {
   String get colorThemeSubtitle => _text('colorThemeSubtitle');
   String get materialYou => _text('materialYou');
   String get muniBlue => _text('muniBlue');
+  String get ocean => _text('ocean');
   String get emerald => _text('emerald');
+  String get lime => _text('lime');
+  String get amber => _text('amber');
   String get coral => _text('coral');
+  String get violet => _text('violet');
+  String get rose => _text('rose');
   String get themeSystem => _text('themeSystem');
   String get themeLight => _text('themeLight');
   String get themeDark => _text('themeDark');
@@ -173,9 +183,6 @@ class AppStrings {
   String get changeColors => _text('changeColors');
   String get classColors => _text('classColors');
   String get academicEventColors => _text('academicEventColors');
-  String get subjectColors => _text('subjectColors');
-  String get subjectColorsSubtitle => _text('subjectColorsSubtitle');
-  String get useAutomaticColor => _text('useAutomaticColor');
   String get lectureColor => _text('lectureColor');
   String get seminarColor => _text('seminarColor');
   String get personalPriority => _text('personalPriority');
@@ -306,12 +313,17 @@ class AppStrings {
       'colorThemeSubtitle': 'Use your device colors or choose a MUstr palette.',
       'materialYou': 'Material You',
       'muniBlue': 'MUNI blue',
+      'ocean': 'Ocean',
       'emerald': 'Emerald',
+      'lime': 'Lime',
+      'amber': 'Amber',
       'coral': 'Coral',
+      'violet': 'Violet',
+      'rose': 'Rose',
       'themeSystem': 'System',
       'themeLight': 'Light',
       'themeDark': 'Dark',
-      'general': 'GENERAL',
+      'general': 'General',
       'remindersEnabled': 'Homework reminders',
       'remindersEnabledSubtitle':
           'Get a notification when a reminder time you set is reached.',
@@ -321,21 +333,18 @@ class AppStrings {
       'highlightCurrentDay': 'Highlight today',
       'highlightCurrentDaySubtitle':
           'Tint the current day in the week timetable.',
-      'classAppearance': 'CLASS APPEARANCE',
+      'classAppearance': 'Class Appearance',
       'classAppearanceSubtitle':
           'Distinguish lectures and seminars across your timetable.',
       'changeColors': 'Change colors',
       'classColors': 'Class colors',
       'academicEventColors': 'Academic event colors',
-      'subjectColors': 'SUBJECT COLORS',
-      'subjectColorsSubtitle': 'Override the color for individual subjects.',
-      'useAutomaticColor': 'Use automatic color',
       'lectureColor': 'Lecture color',
       'seminarColor': 'Seminar color',
       'personalPriority': 'Personal priority',
       'classColor': 'Class color',
       'useTypeColor': 'Use type color',
-      'about': 'ABOUT',
+      'about': 'About',
       'aboutSubtitle': 'Your offline schedule viewer for Masaryk University.',
       'aboutPurposeTitle': 'Built for student life',
       'aboutPurposeBody':
@@ -362,7 +371,7 @@ class AppStrings {
       'easterEggComplete':
           'Recovery complete. The calendar has been informed that you are, in fact, a person and not a scheduling resource.',
       'version': 'Version {value}',
-      'manageTimetables': 'TIMETABLES',
+      'manageTimetables': 'Timetables',
       'manageTimetablesSubtitle': 'Review or remove imported schedules.',
       'importedTimetables': 'Imported timetables',
       'renameTimetable': 'Rename',
@@ -460,6 +469,7 @@ class AppStrings {
       'saveImportantDate': 'Save date',
       'editImportantDate': 'Edit important date',
       'deleteImportantDate': 'Delete important date',
+      'deleteImportantDateMessage': 'Delete "{value}" permanently?',
       'eventTime': 'Set a time',
       'allDay': 'All day',
       'reminderSet': 'Reminder set',
@@ -481,6 +491,7 @@ class AppStrings {
       'noExams': 'No upcoming exams added yet.',
       'independentExam': 'Independent exam',
       'deleteExam': 'Delete exam',
+      'deleteExamMessage': 'Delete "{value}" permanently?',
       'addExamTitle': 'Add exam',
       'examTitle': 'Exam title',
       'examTitleRequired': 'An exam title is required.',
@@ -512,6 +523,8 @@ class AppStrings {
       'dueOnNextClass': 'Due on next class',
       'notesFor': 'Notes for {value}',
       'save': 'Save',
+      'saveChanges': 'Save changes?',
+      'saveChangesMessage': 'Apply the changes you made?',
       'newTask': 'New task',
       'editTask': 'Edit task',
       'taskTitle': 'Title',
@@ -586,12 +599,17 @@ class AppStrings {
           'Použijte barvy zařízení nebo vyberte paletu MUstr.',
       'materialYou': 'Material You',
       'muniBlue': 'MUNI modrá',
+      'ocean': 'Oceánová',
       'emerald': 'Smaragdová',
+      'lime': 'Limetková',
+      'amber': 'Jantarová',
       'coral': 'Korálová',
+      'violet': 'Fialová',
+      'rose': 'Růžová',
       'themeSystem': 'Podle systému',
       'themeLight': 'Světlý',
       'themeDark': 'Tmavý',
-      'general': 'OBECNÉ',
+      'general': 'Obecné',
       'remindersEnabled': 'Připomínky úkolů',
       'remindersEnabledSubtitle':
           'Dostanete upozornění, když nastane nastavený čas připomínky.',
@@ -601,22 +619,18 @@ class AppStrings {
       'highlightCurrentDay': 'Zvýraznit dnešní den',
       'highlightCurrentDaySubtitle':
           'Zvýraznit aktuální den v týdenním rozvrhu.',
-      'classAppearance': 'VZHLED VÝUKY',
+      'classAppearance': 'Vzhled výuky',
       'classAppearanceSubtitle':
           'Rozlište přednášky a semináře v celém rozvrhu.',
       'changeColors': 'Změnit barvy',
       'classColors': 'Barvy výuky',
       'academicEventColors': 'Barvy akademických událostí',
-      'subjectColors': 'BARVY PŘEDMĚTŮ',
-      'subjectColorsSubtitle':
-          'Nastavte vlastní barvu pro jednotlivé předměty.',
-      'useAutomaticColor': 'Použít automatickou barvu',
       'lectureColor': 'Barva přednášky',
       'seminarColor': 'Barva semináře',
       'personalPriority': 'Osobní priorita',
       'classColor': 'Barva výuky',
       'useTypeColor': 'Použít barvu typu',
-      'about': 'O APLIKACI',
+      'about': 'O aplikaci',
       'aboutSubtitle': 'Váš offline prohlížeč rozvrhu Masarykovy univerzity.',
       'aboutPurposeTitle': 'Pro každodenní studentský život',
       'aboutPurposeBody':
@@ -643,7 +657,7 @@ class AppStrings {
       'easterEggComplete':
           'Záchrana dokončena. Kalendář byl informován, že jste člověk, ne zdroj pro plánování.',
       'version': 'Verze {value}',
-      'manageTimetables': 'ROZVRHY',
+      'manageTimetables': 'Rozvrhy',
       'manageTimetablesSubtitle':
           'Zkontrolujte nebo odeberte importované rozvrhy.',
       'importedTimetables': 'Importované rozvrhy',
@@ -741,6 +755,7 @@ class AppStrings {
       'saveImportantDate': 'Uložit datum',
       'editImportantDate': 'Upravit důležité datum',
       'deleteImportantDate': 'Smazat důležité datum',
+      'deleteImportantDateMessage': 'Opravdu trvale smazat „{value}“?',
       'eventTime': 'Nastavit čas',
       'allDay': 'Celý den',
       'reminderSet': 'Připomínka nastavena',
@@ -762,6 +777,7 @@ class AppStrings {
       'noExams': 'Zatím nejsou přidané žádné nadcházející zkoušky.',
       'independentExam': 'Samostatná zkouška',
       'deleteExam': 'Smazat zkoušku',
+      'deleteExamMessage': 'Opravdu trvale smazat „{value}“?',
       'addExamTitle': 'Přidat zkoušku',
       'examTitle': 'Název zkoušky',
       'examTitleRequired': 'Název zkoušky je povinný.',
@@ -793,6 +809,8 @@ class AppStrings {
       'dueOnNextClass': 'Termín při příští výuce',
       'notesFor': 'Poznámky k {value}',
       'save': 'Uložit',
+      'saveChanges': 'Uložit změny?',
+      'saveChangesMessage': 'Použít provedené změny?',
       'newTask': 'Nový úkol',
       'editTask': 'Upravit úkol',
       'taskTitle': 'Název',
@@ -867,12 +885,17 @@ class AppStrings {
           'Použite farby zariadenia alebo vyberte paletu MUstr.',
       'materialYou': 'Material You',
       'muniBlue': 'MUNI modrá',
+      'ocean': 'Oceánová',
       'emerald': 'Smaragdová',
+      'lime': 'Limetková',
+      'amber': 'Jantárová',
       'coral': 'Koralová',
+      'violet': 'Fialová',
+      'rose': 'Ružová',
       'themeSystem': 'Podľa systému',
       'themeLight': 'Svetlý',
       'themeDark': 'Tmavý',
-      'general': 'VŠEOBECNÉ',
+      'general': 'Všeobecné',
       'remindersEnabled': 'Pripomienky úlohy',
       'remindersEnabledSubtitle':
           'Dostanete upozornenie, keď nastane nastavený čas pripomienky.',
@@ -882,22 +905,18 @@ class AppStrings {
       'highlightCurrentDay': 'Zvýrazniť dnešný deň',
       'highlightCurrentDaySubtitle':
           'Zvýrazniť aktuálny deň v týždennom rozvrhu.',
-      'classAppearance': 'VZHĽAD VÝUČBY',
+      'classAppearance': 'Vzhľad výučby',
       'classAppearanceSubtitle':
           'Rozlíšte prednášky a semináre v celom rozvrhu.',
       'changeColors': 'Zmeniť farby',
       'classColors': 'Farby výučby',
       'academicEventColors': 'Farby akademických udalostí',
-      'subjectColors': 'FARBY PREDMETOV',
-      'subjectColorsSubtitle':
-          'Nastavte vlastnú farbu pre jednotlivé predmety.',
-      'useAutomaticColor': 'Použiť automatickú farbu',
       'lectureColor': 'Farba prednášky',
       'seminarColor': 'Farba seminára',
       'personalPriority': 'Osobná priorita',
       'classColor': 'Farba výučby',
       'useTypeColor': 'Použiť farbu typu',
-      'about': 'O APLIKÁCII',
+      'about': 'O aplikácii',
       'aboutSubtitle': 'Váš offline prehliadač rozvrhu Masarykovej univerzity.',
       'aboutPurposeTitle': 'Pre každodenný študentský život',
       'aboutPurposeBody':
@@ -924,7 +943,7 @@ class AppStrings {
       'easterEggComplete':
           'Záchrana dokončená. Kalendár bol informovaný, že ste človek, nie zdroj na plánovanie.',
       'version': 'Verzia {value}',
-      'manageTimetables': 'ROZVRHY',
+      'manageTimetables': 'Rozvrhy',
       'manageTimetablesSubtitle':
           'Skontrolujte alebo odstráňte importované rozvrhy.',
       'importedTimetables': 'Importované rozvrhy',
@@ -1022,6 +1041,7 @@ class AppStrings {
       'saveImportantDate': 'Uložiť dátum',
       'editImportantDate': 'Upraviť dôležitý dátum',
       'deleteImportantDate': 'Vymazať dôležitý dátum',
+      'deleteImportantDateMessage': 'Naozaj natrvalo vymazať „{value}“?',
       'eventTime': 'Nastaviť čas',
       'allDay': 'Celý deň',
       'reminderSet': 'Pripomienka nastavená',
@@ -1043,6 +1063,7 @@ class AppStrings {
       'noExams': 'Zatiaľ nie sú pridané žiadne nadchádzajúce skúšky.',
       'independentExam': 'Samostatná skúška',
       'deleteExam': 'Vymazať skúšku',
+      'deleteExamMessage': 'Naozaj natrvalo vymazať „{value}“?',
       'addExamTitle': 'Pridať skúšku',
       'examTitle': 'Názov skúšky',
       'examTitleRequired': 'Názov skúšky je povinný.',
@@ -1074,6 +1095,8 @@ class AppStrings {
       'dueOnNextClass': 'Termín na ďalšej výučbe',
       'notesFor': 'Poznámky k {value}',
       'save': 'Uložiť',
+      'saveChanges': 'Uložiť zmeny?',
+      'saveChangesMessage': 'Použiť vykonané zmeny?',
       'newTask': 'Nová úloha',
       'editTask': 'Upraviť úlohu',
       'taskTitle': 'Názov',

@@ -224,7 +224,6 @@ class PlannerController extends AsyncNotifier<PlannerData> {
   Future<void> saveLessonStyle(LessonStyleSettings style) async {
     _publish(_currentData.copyWith(lessonStyle: style));
     await _repository.saveLessonStyle(style);
-    await _refresh();
   }
 
   Future<void> saveLessonPresentation(Lesson lesson) async {

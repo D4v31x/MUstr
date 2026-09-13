@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/planner_task.dart';
 import '../../domain/entities/timetable.dart';
 import '../providers/planner_providers.dart';
 import '../localization/app_strings.dart';
+import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/planner_formatters.dart';
 
 Future<void> showTaskEditor(
@@ -315,6 +316,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
+    if (widget.task != null && !await confirmEdit(context)) return;
     final controller = ref.read(plannerProvider.notifier);
     final existing = widget.task;
     final task = existing == null

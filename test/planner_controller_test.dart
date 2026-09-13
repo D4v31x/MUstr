@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muni_timetable/data/repositories/planner_repository.dart';
@@ -64,16 +64,11 @@ void main() {
           examColorValue: 0xff7e22ce,
           importantDateColorValue: 0xff2563eb,
           examPeriodColorValue: 0xffc2410c,
-          subjectColorValues: {'1726907': 0xff0f766e},
         ),
       );
       expect(repository.data.lessonStyle.lectureColorValue, 0xff0f766e);
       expect(repository.data.lessonStyle.seminarColorValue, 0xffbe123c);
       expect(repository.data.lessonStyle.examColorValue, 0xff7e22ce);
-      expect(
-        repository.data.lessonStyle.colorForSubject('1726907'),
-        0xff0f766e,
-      );
 
       final exam = controller.newExam(
         title: 'Programming final',

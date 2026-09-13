@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
@@ -7,6 +7,7 @@ import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/entities/timetable.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
+import '../widgets/change_confirmation_dialog.dart';
 import 'about_screen.dart';
 import 'schedule_colors_screen.dart';
 
@@ -111,8 +112,13 @@ class SettingsScreen extends ConsumerWidget {
                         labels: {
                           AppColorTheme.materialYou: strings.materialYou,
                           AppColorTheme.muniBlue: strings.muniBlue,
+                          AppColorTheme.ocean: strings.ocean,
                           AppColorTheme.emerald: strings.emerald,
+                          AppColorTheme.lime: strings.lime,
+                          AppColorTheme.amber: strings.amber,
                           AppColorTheme.coral: strings.coral,
+                          AppColorTheme.violet: strings.violet,
+                          AppColorTheme.rose: strings.rose,
                         },
                         onChanged: (theme) => ref
                             .read(plannerProvider.notifier)
@@ -203,14 +209,14 @@ class _SettingsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.surface,
+    return Material(
+      color: scheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: scheme.outlineVariant),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
-      child: child,
+      child: Padding(padding: const EdgeInsets.all(20), child: child),
     );
   }
 }
@@ -507,54 +513,19 @@ class _TimetableManager extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: scheme.outlineVariant),
+  Widget build(BuildContext context) => _SettingsPanel(
+    child: ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        Icons.calendar_month_outlined,
+        color: Theme.of(context).colorScheme.primary,
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.calendar_month_outlined, color: scheme.primary),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${context.strings.importedTimetables} ($timetableCount)',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onPressed,
-            tooltip: context.strings.manageTimetables,
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
-      ),
-    );
-  }
+      title: Text('${context.strings.importedTimetables} ($timetableCount)'),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onPressed,
+    ),
+  );
 }
 
 Future<void> _showTimetableManager(BuildContext context) =>
@@ -719,6 +690,9 @@ class _TimetableManagerSheetState
       builder: (context) => _RenameTimetableDialog(initialName: timetable.name),
     );
     if (name == null || !mounted) {
+      return;
+    }
+    if (!await confirmEdit(context)) {
       return;
     }
     await ref

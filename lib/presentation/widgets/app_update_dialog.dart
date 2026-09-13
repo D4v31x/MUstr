@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../services/app_update_service.dart';
 import '../localization/app_strings.dart';
@@ -30,7 +29,6 @@ class AppUpdateController extends ChangeNotifier {
   String? error;
   bool _initialized = false;
   Future<void>? _downloadOperation;
-  Timer? _hideTimer;
 
   bool get visible => phase != AppUpdatePhase.idle;
 
@@ -56,7 +54,6 @@ class AppUpdateController extends ChangeNotifier {
       return;
     }
     if (phase == AppUpdatePhase.downloaded) return;
-    _hideTimer?.cancel();
     final fullySilent = silentWhenCurrent && silentOnError;
     if (!fullySilent) phase = AppUpdatePhase.checking;
     error = null;
@@ -68,7 +65,6 @@ class AppUpdateController extends ChangeNotifier {
             ? AppUpdatePhase.idle
             : AppUpdatePhase.current;
         notifyListeners();
-        if (!silentWhenCurrent) _hideLater();
         return;
       }
       release = available;
@@ -96,7 +92,6 @@ class AppUpdateController extends ChangeNotifier {
   }
 
   Future<void> _download(AppRelease target) async {
-    _hideTimer?.cancel();
     phase = AppUpdatePhase.downloading;
     progress = 0;
     error = null;
@@ -154,20 +149,9 @@ class AppUpdateController extends ChangeNotifier {
     phase = AppUpdatePhase.idle;
     notifyListeners();
   }
-
-  void _hideLater() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (phase == AppUpdatePhase.current) {
-        phase = AppUpdatePhase.idle;
-        notifyListeners();
-      }
-    });
-  }
 }
 
-Future<void> checkForAppUpdate(
-  BuildContext context, {
+Future<void> checkForAppUpdate({
   bool silentWhenCurrent = false,
   bool silentOnError = false,
 }) => appUpdateController.check(
@@ -175,167 +159,15 @@ Future<void> checkForAppUpdate(
   silentOnError: silentOnError,
 );
 
-class AppUpdateStatusBar extends StatelessWidget {
-  const AppUpdateStatusBar({super.key});
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: appUpdateController,
-    builder: (context, _) {
-      final controller = appUpdateController;
-      if (!controller.visible) return const SizedBox.shrink();
-      final strings = context.strings;
-      final scheme = Theme.of(context).colorScheme;
-      final release = controller.release;
-      final phase = controller.phase;
-
-      final (icon, label) = switch (phase) {
-        AppUpdatePhase.checking => (
-          Icons.sync_rounded,
-          strings.checkingForUpdates,
-        ),
-        AppUpdatePhase.available => (
-          Icons.system_update_alt_rounded,
-          release == null
-              ? strings.updateAvailable
-              : strings.updateVersion(release.version),
-        ),
-        AppUpdatePhase.downloading => (
-          Icons.download_rounded,
-          '${strings.updateDownloading} ${(controller.progress * 100).round()}%',
-        ),
-        AppUpdatePhase.downloaded => (
-          Icons.install_mobile_rounded,
-          controller.error == 'permission_required'
-              ? strings.updatePermission
-              : strings.updateReady,
-        ),
-        AppUpdatePhase.installing => (
-          Icons.install_mobile_rounded,
-          strings.updateInstall,
-        ),
-        AppUpdatePhase.current => (
-          Icons.check_circle_outline_rounded,
-          strings.updateCurrent,
-        ),
-        AppUpdatePhase.error => (
-          Icons.error_outline_rounded,
-          _errorText(strings, controller.error),
-        ),
-        AppUpdatePhase.idle => (Icons.info_outline, ''),
-      };
-
-      final progress = phase == AppUpdatePhase.downloading
-          ? controller.progress
-          : null;
-      final action = switch (phase) {
-        AppUpdatePhase.available => TextButton(
-          onPressed: controller.download,
-          child: Text(strings.updateNow),
-        ),
-        AppUpdatePhase.downloaded => FilledButton.tonalIcon(
-          onPressed: controller.install,
-          icon: const Icon(Icons.install_mobile_rounded, size: 18),
-          label: Text(strings.updateInstall),
-        ),
-        AppUpdatePhase.error => TextButton(
-          onPressed: () => controller.check(),
-          child: Text(strings.checkForUpdates),
-        ),
-        _ => null,
-      };
-
-      return Material(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-        elevation: 6,
-        shadowColor: scheme.shadow.withValues(alpha: 0.18),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: scheme.primary, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                  ?action,
-                  if (phase != AppUpdatePhase.downloading &&
-                      phase != AppUpdatePhase.installing &&
-                      phase != AppUpdatePhase.downloaded)
-                    IconButton(
-                      onPressed: controller.dismiss,
-                      tooltip: strings.cancel,
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                ],
-              ),
-              if (progress != null) ...[
-                const SizedBox(height: 8),
-                M3EProgressIndicator.linearWavy(
-                  value: progress == 0 ? null : progress,
-                  linearSize: M3EProgressIndicatorSize.s,
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
 String _errorCode(Object exception) => switch (exception) {
   AppUpdateException(kind: final kind) => kind.name,
   _ => AppUpdateErrorKind.unknown.name,
 };
 
-String _errorText(AppStrings strings, String? code) => switch (code) {
+String appUpdateErrorText(AppStrings strings, String? code) => switch (code) {
   'network' => strings.updateNetworkUnavailable,
   'server' => strings.updateServerUnavailable,
   'invalidRelease' => strings.updateInvalidRelease,
   'integrity' => strings.updateIntegrityFailed,
   _ => strings.updateFailed,
 };
-
-class AppUpdateHost extends StatelessWidget {
-  const AppUpdateHost({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Overlay(
-    initialEntries: [
-      OverlayEntry(
-        builder: (overlayContext) => Stack(
-          children: [
-            Positioned.fill(child: child),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 88,
-              child: SafeArea(
-                top: false,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 560),
-                    child: const AppUpdateStatusBar(),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}

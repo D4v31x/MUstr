@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
@@ -7,6 +7,7 @@ import '../../domain/entities/important_date.dart';
 import '../../domain/entities/timetable.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
+import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/faculty_badge.dart';
 import '../widgets/planner_formatters.dart';
 import 'exam_editor_sheet.dart';
@@ -130,9 +131,20 @@ class SemesterScreen extends ConsumerWidget {
           (importantDate) => _ImportantDateTile(
             data: data,
             importantDate: importantDate,
-            onDelete: () => ref
-                .read(plannerProvider.notifier)
-                .deleteImportantDate(importantDate.id),
+            onDelete: () async {
+              if (!await confirmDelete(
+                context,
+                title: strings.deleteImportantDate,
+                message: strings.deleteImportantDateMessage(
+                  importantDate.title,
+                ),
+              )) {
+                return;
+              }
+              await ref
+                  .read(plannerProvider.notifier)
+                  .deleteImportantDate(importantDate.id);
+            },
           ),
         ),
         const SizedBox(height: 32),
@@ -154,8 +166,16 @@ class SemesterScreen extends ConsumerWidget {
                 : data.subjects
                       .where((subject) => subject.id == exam.subjectId)
                       .firstOrNull,
-            onDelete: () =>
-                ref.read(plannerProvider.notifier).deleteExam(exam.id),
+            onDelete: () async {
+              if (!await confirmDelete(
+                context,
+                title: strings.deleteExam,
+                message: strings.deleteExamMessage(exam.title),
+              )) {
+                return;
+              }
+              await ref.read(plannerProvider.notifier).deleteExam(exam.id);
+            },
           ),
         ),
       ],
@@ -274,7 +294,7 @@ class _ImportantDateTile extends StatelessWidget {
         onTap: () => _showImportantDateDetails(context, data, importantDate),
         leading: Icon(
           Icons.bookmark_outline_rounded,
-          color: Color(data.lessonStyle.importantDateColorValue),
+          color: Theme.of(context).colorScheme.primary,
         ),
         title: Text(importantDate.title),
         subtitle: Text(
@@ -314,7 +334,7 @@ class _ExamPeriodTile extends StatelessWidget {
         onTap: () => _showExamPeriodDetails(context, data, examPeriod),
         leading: Icon(
           Icons.date_range_outlined,
-          color: Color(data.lessonStyle.examPeriodColorValue),
+          color: Theme.of(context).colorScheme.primary,
         ),
         title: Text(context.strings.examPeriod),
         subtitle: Text(
@@ -348,7 +368,7 @@ class _ExamTile extends StatelessWidget {
         onTap: () => _showExamDetails(context, data, exam, subject),
         leading: Icon(
           Icons.school_outlined,
-          color: Color(data.lessonStyle.examColorValue),
+          color: Theme.of(context).colorScheme.primary,
         ),
         title: Text(exam.title),
         subtitle: Text(

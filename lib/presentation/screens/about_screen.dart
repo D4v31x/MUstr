@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../localization/app_strings.dart';
-import '../widgets/app_update_dialog.dart';
+import 'update_check_screen.dart';
 
 const _repositoryUri = 'https://github.com/D4v31x/MUstr';
 const _authorUri = 'https://github.com/D4v31x';
@@ -124,7 +124,11 @@ class _AboutScreenState extends State<AboutScreen> {
               _AboutAction(
                 icon: Icons.system_update_alt_rounded,
                 title: strings.checkForUpdates,
-                onTap: () => appUpdateController.check(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const UpdateCheckScreen(),
+                  ),
+                ),
               ),
               _AboutAction(
                 icon: Icons.person_outline_rounded,

@@ -9,7 +9,6 @@ class LessonStyleSettings {
     this.examColorValue = 0xffba1a1a,
     this.importantDateColorValue = 0xff6750a4,
     this.examPeriodColorValue = 0xff006c65,
-    this.subjectColorValues = const {},
   });
 
   final int lectureColorValue;
@@ -17,7 +16,6 @@ class LessonStyleSettings {
   final int examColorValue;
   final int importantDateColorValue;
   final int examPeriodColorValue;
-  final Map<String, int> subjectColorValues;
 
   int? colorFor(LessonKind kind) => switch (kind) {
     LessonKind.lecture => lectureColorValue,
@@ -25,15 +23,12 @@ class LessonStyleSettings {
     LessonKind.event => null,
   };
 
-  int? colorForSubject(String subjectId) => subjectColorValues[subjectId];
-
   LessonStyleSettings copyWith({
     int? lectureColorValue,
     int? seminarColorValue,
     int? examColorValue,
     int? importantDateColorValue,
     int? examPeriodColorValue,
-    Map<String, int>? subjectColorValues,
   }) => LessonStyleSettings(
     lectureColorValue: lectureColorValue ?? this.lectureColorValue,
     seminarColorValue: seminarColorValue ?? this.seminarColorValue,
@@ -41,7 +36,6 @@ class LessonStyleSettings {
     importantDateColorValue:
         importantDateColorValue ?? this.importantDateColorValue,
     examPeriodColorValue: examPeriodColorValue ?? this.examPeriodColorValue,
-    subjectColorValues: subjectColorValues ?? this.subjectColorValues,
   );
 }
 

@@ -1,22 +1,28 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/entities/planner_task.dart';
 import '../../domain/entities/faculty.dart';
 import '../../domain/entities/timetable.dart';
 
-String dayLabel(BuildContext context, DateTime value) => DateFormat(
-  'EEEE, d MMMM',
-  Localizations.localeOf(context).languageCode,
-).format(value);
-String compactDate(BuildContext context, DateTime value) => DateFormat(
-  'EEE d MMM',
-  Localizations.localeOf(context).languageCode,
-).format(value);
-String shortWeekday(BuildContext context, DateTime value) => DateFormat(
-  'EEE',
-  Localizations.localeOf(context).languageCode,
-).format(value);
+String dayLabel(BuildContext context, DateTime value) => _capitalize(
+  DateFormat(
+    'EEEE, d MMMM',
+    Localizations.localeOf(context).languageCode,
+  ).format(value),
+);
+String compactDate(BuildContext context, DateTime value) => _capitalize(
+  DateFormat(
+    'EEE d MMM',
+    Localizations.localeOf(context).languageCode,
+  ).format(value),
+);
+String shortWeekday(BuildContext context, DateTime value) => _capitalize(
+  DateFormat('EEE', Localizations.localeOf(context).languageCode).format(value),
+);
+
+String _capitalize(String value) =>
+    value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
 String timeLabel(DateTime value) => DateFormat('HH:mm').format(value);
 String timetableCodeLabel(Lesson lesson) =>
     lesson.kind == LessonKind.seminar && lesson.seminarGroup != null
@@ -55,10 +61,7 @@ Color lessonColor(
   Lesson lesson,
   LessonStyleSettings settings,
 ) {
-  final colorValue =
-      lesson.customColorValue ??
-      settings.colorForSubject(lesson.subjectKey) ??
-      settings.colorFor(lesson.kind);
+  final colorValue = lesson.customColorValue ?? settings.colorFor(lesson.kind);
   return colorValue == null
       ? eventColor(
           scheme,

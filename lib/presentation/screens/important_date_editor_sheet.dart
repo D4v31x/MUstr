@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/important_date.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
+import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/faculty_badge.dart';
 import '../widgets/planner_formatters.dart';
 
@@ -223,6 +224,9 @@ class _ImportantDateEditorState extends ConsumerState<_ImportantDateEditor> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (widget.initialImportantDate != null && !await confirmEdit(context)) {
+      return;
+    }
     final reminderAt = _hasReminder
         ? DateTime(
             _reminderDate.year,

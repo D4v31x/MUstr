@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/exam.dart';
 import '../providers/planner_providers.dart';
+import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/faculty_badge.dart';
 import '../widgets/planner_formatters.dart';
 import '../localization/app_strings.dart';
@@ -218,6 +219,7 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (widget.initialExam != null && !await confirmEdit(context)) return;
     final scheduledAt = DateTime(
       _date.year,
       _date.month,
@@ -376,6 +378,9 @@ class _ExamPeriodEditorState extends ConsumerState<_ExamPeriodEditor> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.strings.invalidExamPeriod)),
       );
+      return;
+    }
+    if (widget.initialExamPeriod != null && !await confirmEdit(context)) {
       return;
     }
     await ref

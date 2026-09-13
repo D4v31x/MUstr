@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/exam.dart';
@@ -40,8 +40,10 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    final isSelectedToday = _sameDay(_selectedDay, now);
     final lessons = widget.data.timetable!.lessons
         .where((lesson) => _sameDay(lesson.date, _selectedDay))
+        .where((lesson) => !isSelectedToday || lesson.endTime.isAfter(now))
         .toList();
     final active = lessons
         .where(
@@ -79,9 +81,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _sameDay(_selectedDay, now)
-                        ? strings.today.toUpperCase()
-                        : 'SCHEDULE',
+                    isSelectedToday ? strings.today.toUpperCase() : 'SCHEDULE',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -377,11 +377,12 @@ class _FocusCard extends StatelessWidget {
       );
     }
     final lessonAccent = lessonColor(scheme, lesson!, style);
-    const cardColor = Color(0xff005ca9);
+    final cardColor = scheme.primaryContainer;
+    final foregroundColor = scheme.onPrimaryContainer;
     final codeColor = readableAccentColor(
       lessonAccent,
       cardColor,
-      fallback: Colors.white,
+      fallback: foregroundColor,
     );
     final remaining = isActive
         ? lesson!.endTime.difference(now)
@@ -402,19 +403,26 @@ class _FocusCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 8,
-                    height: 8,
+                    width: 12,
+                    height: 12,
                     decoration: BoxDecoration(
-                      color: lessonAccent,
+                      color: foregroundColor,
                       shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(3),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: lessonAccent,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     label.toUpperCase(),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: Colors.white70),
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: foregroundColor.withValues(alpha: 0.72),
+                    ),
                   ),
                 ],
               ),
@@ -429,7 +437,7 @@ class _FocusCard extends StatelessWidget {
                 lesson!.courseName,
                 style: Theme.of(
                   context,
-                ).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                ).textTheme.headlineSmall?.copyWith(color: foregroundColor),
               ),
               const SizedBox(height: 20),
               Text(
@@ -438,7 +446,7 @@ class _FocusCard extends StatelessWidget {
                     : context.strings.startsIn(_duration(remaining)),
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                ).textTheme.titleMedium?.copyWith(color: foregroundColor),
               ),
             ],
           ),
@@ -517,9 +525,7 @@ class _LessonTile extends StatelessWidget {
                   Text(
                     _kindLabel(context, lesson),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: lesson.isMandatory
-                          ? Theme.of(context).colorScheme.error
-                          : null,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   Text(
@@ -540,16 +546,14 @@ class _LessonTile extends StatelessWidget {
     );
   }
 
-  String _kindLabel(
-    BuildContext context,
-    Lesson lesson,
-  ) => switch (lesson.kind) {
-    LessonKind.seminar =>
-      '${context.strings.seminarDetails(lesson.seminarGroup)} - ${context.strings.mandatory.toLowerCase()}',
-    LessonKind.lecture =>
-      '${context.strings.lecture} - ${context.strings.recommended.toLowerCase()}',
-    LessonKind.event => context.strings.event,
-  };
+  String _kindLabel(BuildContext context, Lesson lesson) =>
+      switch (lesson.kind) {
+        LessonKind.seminar => context.strings.seminarDetails(
+          lesson.seminarGroup,
+        ),
+        LessonKind.lecture => context.strings.lecture,
+        LessonKind.event => context.strings.event,
+      };
 }
 
 class _ActiveLessonMarker extends StatefulWidget {

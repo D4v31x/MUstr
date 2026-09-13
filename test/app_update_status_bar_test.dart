@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muni_timetable/presentation/widgets/app_update_dialog.dart';
+import 'package:muni_timetable/presentation/screens/update_check_screen.dart';
 import 'package:muni_timetable/services/app_update_service.dart';
 
 void main() {
@@ -14,7 +15,7 @@ void main() {
       ..notifyListeners();
   });
 
-  testWidgets('visible update bar has an overlay and bounded layout', (
+  testWidgets('available update is shown in the dedicated update screen', (
     tester,
   ) async {
     appUpdateController
@@ -26,15 +27,12 @@ void main() {
       );
 
     await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => AppUpdateHost(child: child!),
-        home: const Scaffold(body: Center(child: Text('Schedule'))),
-      ),
+      MaterialApp(home: const UpdateCheckScreen(autoStart: false)),
     );
     await tester.pump();
 
     expect(find.text('MUstr 9.9.9 is ready to install.'), findsOneWidget);
-    expect(find.byType(Overlay), findsWidgets);
+    expect(find.text('MUstr'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show Color, ColorScheme;
+import 'package:material_ui/material_ui.dart' show Color, ColorScheme;
 import 'package:home_widget/home_widget.dart';
 
 import '../data/repositories/planner_repository.dart';
@@ -149,7 +149,7 @@ List<String> _weekScheduleLines(
 }
 
 /// Encodes an item as `day|dateLabel|startTime|endTime|title|location|
-/// colorHex|timetableId|isToday|kind`.
+/// colorHex|timetableId|isToday|kind|endAtMillis`.
 String _formatScheduleItem(
   _WidgetScheduleItem item,
   DateTime now,
@@ -178,7 +178,7 @@ String _formatScheduleItem(
       .replaceAll('|', '/');
   final safeLocation = item.location.replaceAll('|', '/');
   final safeTimetableId = item.timetableId.replaceAll('|', '/');
-  return '$day|$dateLabel|$startTime|$endTime|$safeTitle|$safeLocation|${item.colorHex(lessonStyle)}|$safeTimetableId|${isToday ? 1 : 0}|${item.kind}';
+  return '$day|$dateLabel|$startTime|$endTime|$safeTitle|$safeLocation|${item.colorHex(lessonStyle)}|$safeTimetableId|${isToday ? 1 : 0}|${item.kind}|${item.end.millisecondsSinceEpoch}';
 }
 
 class _WidgetScheduleItem {

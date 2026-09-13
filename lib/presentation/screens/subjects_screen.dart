@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/timetable.dart';
 import '../providers/planner_providers.dart';
+import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/planner_formatters.dart';
 import '../widgets/faculty_badge.dart';
 import '../localization/app_strings.dart';
@@ -57,6 +58,9 @@ class SubjectsScreen extends StatelessWidget {
               context: context,
               isScrollControlled: true,
               showDragHandle: true,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+              ),
               builder: (_) =>
                   SubjectSheet(subject: subject, lessons: lessons, data: data),
             ),
@@ -65,13 +69,10 @@ class SubjectsScreen extends StatelessWidget {
                 Text(
                   subject.courseCode,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Color(
-                      data.lessonStyle.colorForSubject(subject.id) ??
-                          eventColor(
-                            Theme.of(context).colorScheme,
-                            subject.faculty,
-                            subject.id,
-                          ).toARGB32(),
+                    color: eventColor(
+                      Theme.of(context).colorScheme,
+                      subject.faculty,
+                      subject.id,
                     ),
                   ),
                 ),
@@ -240,6 +241,7 @@ class SubjectSheet extends ConsumerWidget {
       ),
     );
     if (notes != null) {
+      if (!context.mounted || !await confirmEdit(context)) return;
       await ref
           .read(plannerProvider.notifier)
           .saveSubjectNotes(subject.id, notes.trim());
