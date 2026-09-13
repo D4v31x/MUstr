@@ -55,7 +55,10 @@ Color lessonColor(
   Lesson lesson,
   LessonStyleSettings settings,
 ) {
-  final colorValue = lesson.customColorValue ?? settings.colorFor(lesson.kind);
+  final colorValue =
+      lesson.customColorValue ??
+      settings.colorForSubject(lesson.subjectKey) ??
+      settings.colorFor(lesson.kind);
   return colorValue == null
       ? eventColor(
           scheme,
@@ -107,6 +110,14 @@ Color priorityColor(ColorScheme scheme, TaskPriority priority) =>
     };
 
 DateTime mondayFor(DateTime value) {
-  final dateOnly = DateTime(value.year, value.month, value.day);
-  return dateOnly.subtract(Duration(days: dateOnly.weekday - 1));
+  return DateTime(value.year, value.month, value.day - value.weekday + 1);
 }
+
+DateTime addCalendarDays(DateTime value, int days) =>
+    DateTime(value.year, value.month, value.day + days);
+
+int calendarDayDifference(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;

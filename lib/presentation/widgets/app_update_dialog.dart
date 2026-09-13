@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../services/app_update_service.dart';
 import '../localization/app_strings.dart';
@@ -279,12 +280,9 @@ class AppUpdateStatusBar extends StatelessWidget {
               ),
               if (progress != null) ...[
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress == 0 ? null : progress,
-                    minHeight: 4,
-                  ),
+                M3EProgressIndicator.linearWavy(
+                  value: progress == 0 ? null : progress,
+                  linearSize: M3EProgressIndicatorSize.s,
                 ),
               ],
             ],

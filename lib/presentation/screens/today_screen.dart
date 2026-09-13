@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/repositories/planner_repository.dart';
+import '../../domain/entities/exam.dart';
 import '../../domain/entities/important_date.dart';
 import '../../domain/entities/planner_task.dart';
 import '../../domain/entities/timetable.dart';
@@ -54,8 +55,12 @@ class _TodayScreenState extends State<TodayScreen> {
     final importantDates = widget.data.importantDates
         .where((importantDate) => _sameDay(importantDate.date, _selectedDay))
         .toList();
+    final exams = widget.data.exams
+        .where((exam) => _sameDay(exam.scheduledAt, _selectedDay))
+        .toList();
     final timelineItems = <_TodayTimelineItem>[
       for (final lesson in lessons) _TodayTimelineItem.lesson(lesson),
+      for (final exam in exams) _TodayTimelineItem.exam(exam),
       for (final importantDate in importantDates)
         _TodayTimelineItem.importantDate(importantDate),
     ]..sort((first, second) => first.start.compareTo(second.start));
@@ -115,16 +120,26 @@ class _TodayScreenState extends State<TodayScreen> {
         if (timelineItems.isEmpty)
           const _EmptyDay()
         else
-          ...timelineItems.map(
-            (item) => item.lesson == null
-                ? _ImportantDateScheduleTile(importantDate: item.importantDate!)
-                : _LessonTile(
-                    lesson: item.lesson!,
-                    style: widget.data.lessonStyle,
-                    isActive: item.lesson == active,
-                    showRoom: widget.data.showRoomInSchedule,
-                  ),
-          ),
+          ...timelineItems.map((item) {
+            if (item.lesson != null) {
+              return _LessonTile(
+                lesson: item.lesson!,
+                style: widget.data.lessonStyle,
+                isActive: item.lesson == active,
+                showRoom: widget.data.showRoomInSchedule,
+              );
+            }
+            if (item.exam != null) {
+              return _ExamScheduleTile(
+                exam: item.exam!,
+                style: widget.data.lessonStyle,
+              );
+            }
+            return _ImportantDateScheduleTile(
+              importantDate: item.importantDate!,
+              style: widget.data.lessonStyle,
+            );
+          }),
         const SizedBox(height: 28),
         _SectionHeader(title: strings.dueSoon, icon: Icons.assignment_outlined),
         const SizedBox(height: 12),
@@ -163,27 +178,105 @@ class _TodayScreenState extends State<TodayScreen> {
 class _TodayTimelineItem {
   _TodayTimelineItem.lesson(Lesson lesson)
     : lesson = lesson,
+      exam = null,
       importantDate = null,
       start = lesson.startTime;
 
+  _TodayTimelineItem.exam(Exam exam)
+    : lesson = null,
+      exam = exam,
+      importantDate = null,
+      start = exam.scheduledAt;
+
   _TodayTimelineItem.importantDate(ImportantDate importantDate)
     : lesson = null,
+      exam = null,
       importantDate = importantDate,
       start = importantDate.scheduledAt;
 
   final Lesson? lesson;
+  final Exam? exam;
   final ImportantDate? importantDate;
   final DateTime start;
 }
 
-class _ImportantDateScheduleTile extends StatelessWidget {
-  const _ImportantDateScheduleTile({required this.importantDate});
+class _ExamScheduleTile extends StatelessWidget {
+  const _ExamScheduleTile({required this.exam, required this.style});
 
-  final ImportantDate importantDate;
+  final Exam exam;
+  final LessonStyleSettings style;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final color = Color(style.examColorValue);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 52,
+            child: Text(
+              timeLabel(exam.scheduledAt),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          Container(
+            width: 4,
+            height: 64,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.strings.exam.toUpperCase(),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: color),
+                ),
+                Text(
+                  exam.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (exam.location.isNotEmpty)
+                  Text(
+                    exam.location,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Icon(Icons.school_outlined, color: color),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImportantDateScheduleTile extends StatelessWidget {
+  const _ImportantDateScheduleTile({
+    required this.importantDate,
+    required this.style,
+  });
+
+  final ImportantDate importantDate;
+  final LessonStyleSettings style;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = Color(style.importantDateColorValue);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -202,7 +295,7 @@ class _ImportantDateScheduleTile extends StatelessWidget {
             width: 4,
             height: 64,
             decoration: BoxDecoration(
-              color: scheme.tertiary,
+              color: color,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -215,7 +308,7 @@ class _ImportantDateScheduleTile extends StatelessWidget {
                   context.strings.importantDate.toUpperCase(),
                   style: Theme.of(
                     context,
-                  ).textTheme.labelLarge?.copyWith(color: scheme.tertiary),
+                  ).textTheme.labelLarge?.copyWith(color: color),
                 ),
                 Text(
                   importantDate.title,
@@ -233,7 +326,7 @@ class _ImportantDateScheduleTile extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.bookmark_outline_rounded, color: scheme.tertiary),
+          Icon(Icons.bookmark_outline_rounded, color: color),
         ],
       ),
     );

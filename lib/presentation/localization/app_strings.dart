@@ -15,12 +15,15 @@ class AppStrings {
   String get previousWeek => _text('previousWeek');
   String get nextWeek => _text('nextWeek');
   String get semesterLabel => _text('semesterLabel');
+  String get thisSemester => _text('thisSemester');
   String get importantDates => _text('importantDates');
+  String get noImportantDates => _text('noImportantDates');
   String get importantDate => _text('importantDate');
   String get addImportantDate => _text('addImportantDate');
   String get importantDateTitle => _text('importantDateTitle');
   String get importantDateTitleRequired => _text('importantDateTitleRequired');
   String get saveImportantDate => _text('saveImportantDate');
+  String get editImportantDate => _text('editImportantDate');
   String get deleteImportantDate => _text('deleteImportantDate');
   String get eventTime => _text('eventTime');
   String get allDay => _text('allDay');
@@ -30,6 +33,8 @@ class AppStrings {
   String get importedTimetable => _text('importedTimetable');
   String get addExam => _text('addExam');
   String get examPeriod => _text('examPeriod');
+  String get examPeriods => _text('examPeriods');
+  String get noExamPeriods => _text('noExamPeriods');
   String get exam => _text('exam');
   String get exams => _text('exams');
   String get jumpToWeek => _text('jumpToWeek');
@@ -48,6 +53,8 @@ class AppStrings {
   String get roomOrOnlineLocation => _text('roomOrOnlineLocation');
   String get notesOptional => _text('notesOptional');
   String get saveExam => _text('saveExam');
+  String get editExam => _text('editExam');
+  String get edit => _text('edit');
   String get starts => _text('starts');
   String get ends => _text('ends');
   String get saveExamPeriod => _text('saveExamPeriod');
@@ -80,6 +87,7 @@ class AppStrings {
   String get normal => _text('normal');
   String get high => _text('high');
   String get reminder => _text('reminder');
+  String get classReminder => _text('classReminder');
   String get noReminder => _text('noReminder');
   String get changeReminderTime => _text('changeReminderTime');
   String get saveTask => _text('saveTask');
@@ -137,10 +145,18 @@ class AppStrings {
   String get tasks => _text('tasks');
   String get subjects => _text('subjects');
   String get settings => _text('settings');
+  String get settingsDescription => _text('settingsDescription');
+  String get displaySettings => _text('displaySettings');
   String get language => _text('language');
   String get languageSubtitle => _text('languageSubtitle');
   String get theme => _text('theme');
   String get themeSubtitle => _text('themeSubtitle');
+  String get colorTheme => _text('colorTheme');
+  String get colorThemeSubtitle => _text('colorThemeSubtitle');
+  String get materialYou => _text('materialYou');
+  String get muniBlue => _text('muniBlue');
+  String get emerald => _text('emerald');
+  String get coral => _text('coral');
   String get themeSystem => _text('themeSystem');
   String get themeLight => _text('themeLight');
   String get themeDark => _text('themeDark');
@@ -154,6 +170,12 @@ class AppStrings {
       _text('highlightCurrentDaySubtitle');
   String get classAppearance => _text('classAppearance');
   String get classAppearanceSubtitle => _text('classAppearanceSubtitle');
+  String get changeColors => _text('changeColors');
+  String get classColors => _text('classColors');
+  String get academicEventColors => _text('academicEventColors');
+  String get subjectColors => _text('subjectColors');
+  String get subjectColorsSubtitle => _text('subjectColorsSubtitle');
+  String get useAutomaticColor => _text('useAutomaticColor');
   String get lectureColor => _text('lectureColor');
   String get seminarColor => _text('seminarColor');
   String get personalPriority => _text('personalPriority');
@@ -197,6 +219,10 @@ class AppStrings {
   String get welcomeDescription => _text('welcomeDescription');
   String get getStarted => _text('getStarted');
   String get back => _text('back');
+  String get analyticsConsent => _text('analyticsConsent');
+  String get analyticsConsentDescription =>
+      _text('analyticsConsentDescription');
+  String get analyticsConsentSubtitle => _text('analyticsConsentSubtitle');
   String get allFaculties => _text('allFaculties');
   String get filterFaculty => _text('filterFaculty');
   String get moreOptions => _text('moreOptions');
@@ -270,10 +296,18 @@ class AppStrings {
       'tasks': 'Tasks',
       'subjects': 'Subjects',
       'settings': 'Settings',
+      'settingsDescription': 'Choose how your schedule looks and behaves.',
+      'displaySettings': 'Display',
       'language': 'Language',
       'languageSubtitle': 'Choose the language used by the app.',
       'theme': 'Theme',
       'themeSubtitle': 'Choose how MUstr looks.',
+      'colorTheme': 'Color theme',
+      'colorThemeSubtitle': 'Use your device colors or choose a MUstr palette.',
+      'materialYou': 'Material You',
+      'muniBlue': 'MUNI blue',
+      'emerald': 'Emerald',
+      'coral': 'Coral',
       'themeSystem': 'System',
       'themeLight': 'Light',
       'themeDark': 'Dark',
@@ -290,6 +324,12 @@ class AppStrings {
       'classAppearance': 'CLASS APPEARANCE',
       'classAppearanceSubtitle':
           'Distinguish lectures and seminars across your timetable.',
+      'changeColors': 'Change colors',
+      'classColors': 'Class colors',
+      'academicEventColors': 'Academic event colors',
+      'subjectColors': 'SUBJECT COLORS',
+      'subjectColorsSubtitle': 'Override the color for individual subjects.',
+      'useAutomaticColor': 'Use automatic color',
       'lectureColor': 'Lecture color',
       'seminarColor': 'Seminar color',
       'personalPriority': 'Personal priority',
@@ -376,6 +416,11 @@ class AppStrings {
       'whereStudying': 'Where are you studying?',
       'selectFaculties':
           'Select every faculty you study at. You will assign each imported timetable to one of them.',
+      'analyticsConsent': 'Help improve MUstr',
+      'analyticsConsentDescription':
+          'Optional. Creates a random app-install ID and shares only your selected faculty IDs and anonymous usage data. You can turn it off later.',
+      'analyticsConsentSubtitle':
+          'Share a random app-install ID, selected faculty IDs, and anonymous usage data.',
       'saveFaculties': 'Save faculties',
       'muniFaculty': 'MUNI faculty',
       'chooseFaculty': 'Assign timetable to faculty',
@@ -405,12 +450,15 @@ class AppStrings {
       'previousWeek': 'Previous week',
       'nextWeek': 'Next week',
       'semesterLabel': 'SEMESTER',
+      'thisSemester': 'This semester',
       'importantDates': 'Important dates',
+      'noImportantDates': 'No important dates added yet.',
       'importantDate': 'Important date',
       'addImportantDate': 'Add important date',
       'importantDateTitle': 'Date title',
       'importantDateTitleRequired': 'A title is required.',
       'saveImportantDate': 'Save date',
+      'editImportantDate': 'Edit important date',
       'deleteImportantDate': 'Delete important date',
       'eventTime': 'Set a time',
       'allDay': 'All day',
@@ -420,6 +468,8 @@ class AppStrings {
       'importedTimetable': 'Imported timetable',
       'addExam': 'Add exam',
       'examPeriod': 'Exam period',
+      'examPeriods': 'Exam periods',
+      'noExamPeriods': 'No exam periods added yet.',
       'exam': 'Exam',
       'exams': 'Exams',
       'jumpToWeek': 'Jump to week',
@@ -440,6 +490,8 @@ class AppStrings {
       'roomOrOnlineLocation': 'Room or online location (optional)',
       'notesOptional': 'Notes (optional)',
       'saveExam': 'Save exam',
+      'editExam': 'Edit exam',
+      'edit': 'Edit',
       'starts': 'Starts',
       'ends': 'Ends',
       'saveExamPeriod': 'Save exam period',
@@ -471,6 +523,7 @@ class AppStrings {
       'normal': 'Normal',
       'high': 'High',
       'reminder': 'Reminder',
+      'classReminder': 'Remind me about this class',
       'noReminder': 'No reminder',
       'changeReminderTime': 'Change reminder time',
       'saveTask': 'Save task',
@@ -522,10 +575,19 @@ class AppStrings {
       'tasks': 'Úkoly',
       'subjects': 'Předměty',
       'settings': 'Nastavení',
+      'settingsDescription': 'Nastavte si vzhled a chování rozvrhu.',
+      'displaySettings': 'Zobrazení',
       'language': 'Jazyk',
       'languageSubtitle': 'Vyberte jazyk používaný aplikací.',
       'theme': 'Vzhled',
       'themeSubtitle': 'Vyberte, jak MUstr vypadá.',
+      'colorTheme': 'Barevné schéma',
+      'colorThemeSubtitle':
+          'Použijte barvy zařízení nebo vyberte paletu MUstr.',
+      'materialYou': 'Material You',
+      'muniBlue': 'MUNI modrá',
+      'emerald': 'Smaragdová',
+      'coral': 'Korálová',
       'themeSystem': 'Podle systému',
       'themeLight': 'Světlý',
       'themeDark': 'Tmavý',
@@ -542,6 +604,13 @@ class AppStrings {
       'classAppearance': 'VZHLED VÝUKY',
       'classAppearanceSubtitle':
           'Rozlište přednášky a semináře v celém rozvrhu.',
+      'changeColors': 'Změnit barvy',
+      'classColors': 'Barvy výuky',
+      'academicEventColors': 'Barvy akademických událostí',
+      'subjectColors': 'BARVY PŘEDMĚTŮ',
+      'subjectColorsSubtitle':
+          'Nastavte vlastní barvu pro jednotlivé předměty.',
+      'useAutomaticColor': 'Použít automatickou barvu',
       'lectureColor': 'Barva přednášky',
       'seminarColor': 'Barva semináře',
       'personalPriority': 'Osobní priorita',
@@ -629,6 +698,11 @@ class AppStrings {
       'whereStudying': 'Kde studujete?',
       'selectFaculties':
           'Vyberte všechny fakulty, na kterých studujete. Každý importovaný rozvrh přiřadíte k jedné z nich.',
+      'analyticsConsent': 'Pomozte zlepšovat MUstr',
+      'analyticsConsentDescription':
+          'Volitelné. Vytvoří náhodné ID instalace a sdílí jen vybrané fakulty a anonymní údaje o používání. Později jej můžete vypnout.',
+      'analyticsConsentSubtitle':
+          'Sdílet náhodné ID instalace, vybrané fakulty a anonymní údaje o používání.',
       'saveFaculties': 'Uložit fakulty',
       'muniFaculty': 'Fakulta MU',
       'chooseFaculty': 'Přiřadit rozvrh k fakultě',
@@ -657,12 +731,15 @@ class AppStrings {
       'previousWeek': 'Předchozí týden',
       'nextWeek': 'Další týden',
       'semesterLabel': 'SEMESTR',
+      'thisSemester': 'Tento semestr',
       'importantDates': 'Důležitá data',
+      'noImportantDates': 'Zatím nejsou přidaná žádná důležitá data.',
       'importantDate': 'Důležité datum',
       'addImportantDate': 'Přidat důležité datum',
       'importantDateTitle': 'Název data',
       'importantDateTitleRequired': 'Zadejte název.',
       'saveImportantDate': 'Uložit datum',
+      'editImportantDate': 'Upravit důležité datum',
       'deleteImportantDate': 'Smazat důležité datum',
       'eventTime': 'Nastavit čas',
       'allDay': 'Celý den',
@@ -672,6 +749,8 @@ class AppStrings {
       'importedTimetable': 'Importovaný rozvrh',
       'addExam': 'Přidat zkoušku',
       'examPeriod': 'Zkouškové období',
+      'examPeriods': 'Zkoušková období',
+      'noExamPeriods': 'Zatím nejsou přidaná žádná zkoušková období.',
       'exam': 'Zkouška',
       'exams': 'Zkoušky',
       'jumpToWeek': 'Přejít na týden',
@@ -692,6 +771,8 @@ class AppStrings {
       'roomOrOnlineLocation': 'Místnost nebo online místo (volitelné)',
       'notesOptional': 'Poznámky (volitelné)',
       'saveExam': 'Uložit zkoušku',
+      'editExam': 'Upravit zkoušku',
+      'edit': 'Upravit',
       'starts': 'Začíná',
       'ends': 'Končí',
       'saveExamPeriod': 'Uložit zkouškové období',
@@ -723,6 +804,7 @@ class AppStrings {
       'normal': 'Běžná',
       'high': 'Vysoká',
       'reminder': 'Připomínka',
+      'classReminder': 'Připomenout tuto výuku',
       'noReminder': 'Bez připomínky',
       'changeReminderTime': 'Změnit čas připomínky',
       'saveTask': 'Uložit úkol',
@@ -774,10 +856,19 @@ class AppStrings {
       'tasks': 'Úlohy',
       'subjects': 'Predmety',
       'settings': 'Nastavenia',
+      'settingsDescription': 'Nastavte si vzhľad a správanie rozvrhu.',
+      'displaySettings': 'Zobrazenie',
       'language': 'Jazyk',
       'languageSubtitle': 'Vyberte jazyk používaný aplikáciou.',
       'theme': 'Vzhľad',
       'themeSubtitle': 'Vyberte, ako MUstr vyzerá.',
+      'colorTheme': 'Farebná téma',
+      'colorThemeSubtitle':
+          'Použite farby zariadenia alebo vyberte paletu MUstr.',
+      'materialYou': 'Material You',
+      'muniBlue': 'MUNI modrá',
+      'emerald': 'Smaragdová',
+      'coral': 'Koralová',
       'themeSystem': 'Podľa systému',
       'themeLight': 'Svetlý',
       'themeDark': 'Tmavý',
@@ -794,6 +885,13 @@ class AppStrings {
       'classAppearance': 'VZHĽAD VÝUČBY',
       'classAppearanceSubtitle':
           'Rozlíšte prednášky a semináre v celom rozvrhu.',
+      'changeColors': 'Zmeniť farby',
+      'classColors': 'Farby výučby',
+      'academicEventColors': 'Farby akademických udalostí',
+      'subjectColors': 'FARBY PREDMETOV',
+      'subjectColorsSubtitle':
+          'Nastavte vlastnú farbu pre jednotlivé predmety.',
+      'useAutomaticColor': 'Použiť automatickú farbu',
       'lectureColor': 'Farba prednášky',
       'seminarColor': 'Farba seminára',
       'personalPriority': 'Osobná priorita',
@@ -881,6 +979,11 @@ class AppStrings {
       'whereStudying': 'Kde študujete?',
       'selectFaculties':
           'Vyberte všetky fakulty, na ktorých študujete. Každý importovaný rozvrh priradíte k jednej z nich.',
+      'analyticsConsent': 'Pomôžte zlepšovať MUstr',
+      'analyticsConsentDescription':
+          'Voliteľné. Vytvorí náhodné ID inštalácie a zdieľa len vybrané fakulty a anonymné údaje o používaní. Neskôr ho môžete vypnúť.',
+      'analyticsConsentSubtitle':
+          'Zdieľať náhodné ID inštalácie, vybrané fakulty a anonymné údaje o používaní.',
       'saveFaculties': 'Uložiť fakulty',
       'muniFaculty': 'Fakulta MU',
       'chooseFaculty': 'Priradiť rozvrh k fakulte',
@@ -909,12 +1012,15 @@ class AppStrings {
       'previousWeek': 'Predchádzajúci týždeň',
       'nextWeek': 'Nasledujúci týždeň',
       'semesterLabel': 'SEMESTER',
+      'thisSemester': 'Tento semester',
       'importantDates': 'Dôležité dátumy',
+      'noImportantDates': 'Zatiaľ nie sú pridané žiadne dôležité dátumy.',
       'importantDate': 'Dôležitý dátum',
       'addImportantDate': 'Pridať dôležitý dátum',
       'importantDateTitle': 'Názov dátumu',
       'importantDateTitleRequired': 'Zadajte názov.',
       'saveImportantDate': 'Uložiť dátum',
+      'editImportantDate': 'Upraviť dôležitý dátum',
       'deleteImportantDate': 'Vymazať dôležitý dátum',
       'eventTime': 'Nastaviť čas',
       'allDay': 'Celý deň',
@@ -924,6 +1030,8 @@ class AppStrings {
       'importedTimetable': 'Importovaný rozvrh',
       'addExam': 'Pridať skúšku',
       'examPeriod': 'Skúškové obdobie',
+      'examPeriods': 'Skúškové obdobia',
+      'noExamPeriods': 'Zatiaľ nie sú pridané žiadne skúškové obdobia.',
       'exam': 'Skúška',
       'exams': 'Skúšky',
       'jumpToWeek': 'Prejsť na týždeň',
@@ -944,6 +1052,8 @@ class AppStrings {
       'roomOrOnlineLocation': 'Miestnosť alebo online miesto (voliteľné)',
       'notesOptional': 'Poznámky (voliteľné)',
       'saveExam': 'Uložiť skúšku',
+      'editExam': 'Upraviť skúšku',
+      'edit': 'Upraviť',
       'starts': 'Začína',
       'ends': 'Končí',
       'saveExamPeriod': 'Uložiť skúškové obdobie',
@@ -975,6 +1085,7 @@ class AppStrings {
       'normal': 'Bežná',
       'high': 'Vysoká',
       'reminder': 'Pripomienka',
+      'classReminder': 'Pripomenúť túto výučbu',
       'noReminder': 'Bez pripomienky',
       'changeReminderTime': 'Zmeniť čas pripomienky',
       'saveTask': 'Uložiť úlohu',

@@ -111,6 +111,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 initialValue: _subjectId,
+                menuMaxHeight: 320,
                 decoration: InputDecoration(labelText: strings.subject),
                 items: [
                   DropdownMenuItem(value: null, child: Text(strings.noSubject)),

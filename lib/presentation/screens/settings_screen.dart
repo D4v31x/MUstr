@@ -8,6 +8,7 @@ import '../../domain/entities/timetable.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
 import 'about_screen.dart';
+import 'schedule_colors_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, required this.data});
@@ -29,82 +30,96 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.tune_rounded,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            strings.preferences,
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            strings.settings,
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                Text(
+                  'MUstr',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontFamily: 'MuniBold',
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 4),
+                Text(
+                  strings.settings,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  strings.settingsDescription,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 28),
                 _SectionTitle(
                   icon: Icons.palette_outlined,
                   title: strings.classAppearance,
                 ),
                 const SizedBox(height: 12),
-                _TimetableKey(style: currentData.lessonStyle),
-                const SizedBox(height: 12),
-                _AppearanceEditor(
-                  style: currentData.lessonStyle,
-                  lectureLabel: strings.lecture,
-                  seminarLabel: strings.seminar,
-                  subtitle: strings.classAppearanceSubtitle,
-                  onStyleChanged: (style) =>
-                      ref.read(plannerProvider.notifier).saveLessonStyle(style),
+                _SettingsPanel(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      Icons.tune_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(strings.changeColors),
+                    subtitle: Text(strings.classAppearanceSubtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ScheduleColorsScreen(data: currentData),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 32),
                 _SectionTitle(
-                  icon: Icons.language_rounded,
-                  title: strings.language,
+                  icon: Icons.tune_rounded,
+                  title: strings.displaySettings,
                 ),
                 const SizedBox(height: 12),
-                _LanguageEditor(
-                  selected: currentData.language,
-                  subtitle: strings.languageSubtitle,
-                  onChanged: (language) =>
-                      ref.read(plannerProvider.notifier).saveLanguage(language),
-                ),
-                const SizedBox(height: 32),
-                _SectionTitle(
-                  icon: Icons.dark_mode_outlined,
-                  title: strings.theme,
-                ),
-                const SizedBox(height: 12),
-                _ThemeModeEditor(
-                  selected: currentData.themeMode,
-                  subtitle: strings.themeSubtitle,
-                  onChanged: (mode) =>
-                      ref.read(plannerProvider.notifier).saveThemeMode(mode),
+                _SettingsPanel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _LanguageEditor(
+                        selected: currentData.language,
+                        subtitle: strings.languageSubtitle,
+                        onChanged: (language) => ref
+                            .read(plannerProvider.notifier)
+                            .saveLanguage(language),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Divider(),
+                      ),
+                      _ThemeModeEditor(
+                        selected: currentData.themeMode,
+                        subtitle: strings.themeSubtitle,
+                        onChanged: (mode) => ref
+                            .read(plannerProvider.notifier)
+                            .saveThemeMode(mode),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Divider(),
+                      ),
+                      _ColorThemeEditor(
+                        selected: currentData.colorTheme,
+                        title: strings.colorTheme,
+                        subtitle: strings.colorThemeSubtitle,
+                        labels: {
+                          AppColorTheme.materialYou: strings.materialYou,
+                          AppColorTheme.muniBlue: strings.muniBlue,
+                          AppColorTheme.emerald: strings.emerald,
+                          AppColorTheme.coral: strings.coral,
+                        },
+                        onChanged: (theme) => ref
+                            .read(plannerProvider.notifier)
+                            .saveColorTheme(theme),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 32),
                 _SectionTitle(icon: Icons.tune_rounded, title: strings.general),
@@ -113,6 +128,7 @@ class SettingsScreen extends ConsumerWidget {
                   remindersEnabled: currentData.remindersEnabled,
                   showRoomInSchedule: currentData.showRoomInSchedule,
                   highlightCurrentDay: currentData.highlightCurrentDay,
+                  analyticsConsent: currentData.analyticsConsent,
                   onRemindersEnabledChanged: (value) => ref
                       .read(plannerProvider.notifier)
                       .saveRemindersEnabled(value),
@@ -122,6 +138,9 @@ class SettingsScreen extends ConsumerWidget {
                   onHighlightCurrentDayChanged: (value) => ref
                       .read(plannerProvider.notifier)
                       .saveHighlightCurrentDay(value),
+                  onAnalyticsConsentChanged: (value) => ref
+                      .read(plannerProvider.notifier)
+                      .saveAnalyticsConsent(value),
                 ),
                 const SizedBox(height: 32),
                 _SectionTitle(
@@ -157,15 +176,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-const _colorChoices = <int>[
-  0xff2563eb,
-  0xff0f766e,
-  0xffc2410c,
-  0xffbe123c,
-  0xff7e22ce,
-  0xff475569,
-];
-
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.icon, required this.title});
 
@@ -185,10 +195,10 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _TimetableKey extends StatelessWidget {
-  const _TimetableKey({required this.style});
+class _SettingsPanel extends StatelessWidget {
+  const _SettingsPanel({required this.child});
 
-  final LessonStyleSettings style;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -196,246 +206,13 @@ class _TimetableKey extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _PreviewLesson(
-              color: Color(style.lectureColorValue),
-              title: context.strings.lecture,
-              time: '08:00',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _PreviewLesson(
-              color: Color(style.seminarColorValue),
-              title: context.strings.seminar,
-              time: '10:00',
-            ),
-          ),
-        ],
-      ),
+      child: child,
     );
   }
-}
-
-class _PreviewLesson extends StatelessWidget {
-  const _PreviewLesson({
-    required this.color,
-    required this.title,
-    required this.time,
-  });
-
-  final Color color;
-  final String title;
-  final String time;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 100,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(8),
-      boxShadow: [
-        BoxShadow(
-          color: color.withValues(alpha: 0.22),
-          blurRadius: 12,
-          offset: const Offset(0, 5),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          time,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(color: Colors.white70),
-        ),
-        const Spacer(),
-        Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(color: Colors.white),
-        ),
-      ],
-    ),
-  );
-}
-
-class _AppearanceEditor extends StatelessWidget {
-  const _AppearanceEditor({
-    required this.style,
-    required this.lectureLabel,
-    required this.seminarLabel,
-    required this.subtitle,
-    required this.onStyleChanged,
-  });
-
-  final LessonStyleSettings style;
-  final String lectureLabel;
-  final String seminarLabel;
-  final String subtitle;
-  final ValueChanged<LessonStyleSettings> onStyleChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 24),
-        _ColorRow(
-          icon: Icons.auto_stories_outlined,
-          label: lectureLabel,
-          colorValue: style.lectureColorValue,
-          onChanged: (colorValue) => onStyleChanged(
-            LessonStyleSettings(
-              lectureColorValue: colorValue,
-              seminarColorValue: style.seminarColorValue,
-            ),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Divider(),
-        ),
-        _ColorRow(
-          icon: Icons.groups_2_outlined,
-          label: seminarLabel,
-          colorValue: style.seminarColorValue,
-          onChanged: (colorValue) => onStyleChanged(
-            LessonStyleSettings(
-              lectureColorValue: style.lectureColorValue,
-              seminarColorValue: colorValue,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _ColorRow extends StatelessWidget {
-  const _ColorRow({
-    required this.icon,
-    required this.label,
-    required this.colorValue,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String label;
-  final int colorValue;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Color(colorValue).withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: Color(colorValue)),
-          ),
-          const SizedBox(width: 12),
-          Text(label, style: Theme.of(context).textTheme.titleSmall),
-        ],
-      ),
-      const SizedBox(height: 16),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: _colorChoices
-            .map(
-              (value) => _ColorSwatch(
-                colorValue: value,
-                selected: colorValue == value,
-                label: label,
-                onTap: () => onChanged(value),
-              ),
-            )
-            .toList(),
-      ),
-    ],
-  );
-}
-
-class _ColorSwatch extends StatelessWidget {
-  const _ColorSwatch({
-    required this.colorValue,
-    required this.selected,
-    required this.label,
-    required this.onTap,
-  });
-
-  final int colorValue;
-  final bool selected;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    selected: selected,
-    label: label,
-    child: Tooltip(
-      message: label,
-      child: InkResponse(
-        onTap: onTap,
-        radius: 28,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 44,
-          height: 44,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: selected
-                  ? Theme.of(context).colorScheme.onSurface
-                  : Colors.transparent,
-              width: 2,
-            ),
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Color(colorValue),
-              shape: BoxShape.circle,
-            ),
-            child: selected
-                ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
-                : null,
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 class _LanguageEditor extends StatelessWidget {
@@ -450,41 +227,31 @@ class _LanguageEditor extends StatelessWidget {
   final ValueChanged<AppLanguage> onChanged;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        subtitle,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<AppLanguage>(
-            segments: AppLanguage.values
-                .map(
-                  (language) => ButtonSegment(
-                    value: language,
-                    label: Text(language.label),
-                  ),
-                )
-                .toList(),
-            selected: {selected},
-            showSelectedIcon: false,
-            onSelectionChanged: (value) => onChanged(value.single),
-          ),
+      ),
+      const SizedBox(height: 20),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<AppLanguage>(
+          segments: AppLanguage.values
+              .map(
+                (language) =>
+                    ButtonSegment(value: language, label: Text(language.label)),
+              )
+              .toList(),
+          selected: {selected},
+          showSelectedIcon: false,
+          onSelectionChanged: (value) => onChanged(value.single),
         ),
-      ],
-    ),
+      ),
+    ],
   );
 }
 
@@ -507,41 +274,98 @@ class _ThemeModeEditor extends StatelessWidget {
       AppThemeMode.light: strings.themeLight,
       AppThemeMode.dark: strings.themeDark,
     };
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<AppThemeMode>(
-              segments: AppThemeMode.values
-                  .map(
-                    (mode) =>
-                        ButtonSegment(value: mode, label: Text(labels[mode]!)),
-                  )
-                  .toList(),
-              selected: {selected},
-              showSelectedIcon: false,
-              onSelectionChanged: (value) => onChanged(value.single),
-            ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<AppThemeMode>(
+            segments: AppThemeMode.values
+                .map(
+                  (mode) =>
+                      ButtonSegment(value: mode, label: Text(labels[mode]!)),
+                )
+                .toList(),
+            selected: {selected},
+            showSelectedIcon: false,
+            onSelectionChanged: (value) => onChanged(value.single),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
+
+class _ColorThemeEditor extends StatelessWidget {
+  const _ColorThemeEditor({
+    required this.selected,
+    required this.title,
+    required this.subtitle,
+    required this.labels,
+    required this.onChanged,
+  });
+
+  final AppColorTheme selected;
+  final String title;
+  final String subtitle;
+  final Map<AppColorTheme, String> labels;
+  final ValueChanged<AppColorTheme> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 4),
+      Text(
+        subtitle,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: 16),
+      DropdownButtonFormField<AppColorTheme>(
+        initialValue: selected,
+        isExpanded: true,
+        menuMaxHeight: 320,
+        decoration: const InputDecoration(),
+        items: AppColorTheme.values
+            .map(
+              (theme) => DropdownMenuItem(
+                value: theme,
+                child: Row(
+                  children: [
+                    if (theme.seedColor == null)
+                      const Icon(Icons.palette_outlined)
+                    else
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: theme.seedColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    const SizedBox(width: 12),
+                    Text(labels[theme]!),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: (theme) {
+          if (theme != null) onChanged(theme);
+        },
+      ),
+    ],
+  );
 }
 
 class _GeneralSettings extends StatelessWidget {
@@ -549,17 +373,21 @@ class _GeneralSettings extends StatelessWidget {
     required this.remindersEnabled,
     required this.showRoomInSchedule,
     required this.highlightCurrentDay,
+    required this.analyticsConsent,
     required this.onRemindersEnabledChanged,
     required this.onShowRoomInScheduleChanged,
     required this.onHighlightCurrentDayChanged,
+    required this.onAnalyticsConsentChanged,
   });
 
   final bool remindersEnabled;
   final bool showRoomInSchedule;
   final bool highlightCurrentDay;
+  final bool analyticsConsent;
   final ValueChanged<bool> onRemindersEnabledChanged;
   final ValueChanged<bool> onShowRoomInScheduleChanged;
   final ValueChanged<bool> onHighlightCurrentDayChanged;
+  final ValueChanged<bool> onAnalyticsConsentChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -593,6 +421,13 @@ class _GeneralSettings extends StatelessWidget {
             onChanged: onHighlightCurrentDayChanged,
             title: Text(strings.highlightCurrentDay),
             subtitle: Text(strings.highlightCurrentDaySubtitle),
+          ),
+          const Divider(height: 1),
+          SwitchListTile(
+            value: analyticsConsent,
+            onChanged: onAnalyticsConsentChanged,
+            title: Text(strings.analyticsConsent),
+            subtitle: Text(strings.analyticsConsentSubtitle),
           ),
         ],
       ),

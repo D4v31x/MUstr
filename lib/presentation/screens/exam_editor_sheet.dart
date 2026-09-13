@@ -12,30 +12,44 @@ Future<void> showExamEditor(
   BuildContext context, {
   required PlannerData data,
   required String initialFacultyId,
+  Exam? initialExam,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
-  builder: (_) => _ExamEditor(data: data, initialFacultyId: initialFacultyId),
+  builder: (_) => _ExamEditor(
+    data: data,
+    initialFacultyId: initialFacultyId,
+    initialExam: initialExam,
+  ),
 );
 
 Future<void> showExamPeriodEditor(
   BuildContext context, {
   required PlannerData data,
   required String initialFacultyId,
+  ExamPeriod? initialExamPeriod,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
-  builder: (_) =>
-      _ExamPeriodEditor(data: data, initialFacultyId: initialFacultyId),
+  builder: (_) => _ExamPeriodEditor(
+    data: data,
+    initialFacultyId: initialFacultyId,
+    initialExamPeriod: initialExamPeriod,
+  ),
 );
 
 class _ExamEditor extends ConsumerStatefulWidget {
-  const _ExamEditor({required this.data, required this.initialFacultyId});
+  const _ExamEditor({
+    required this.data,
+    required this.initialFacultyId,
+    required this.initialExam,
+  });
 
   final PlannerData data;
   final String initialFacultyId;
+  final Exam? initialExam;
 
   @override
   ConsumerState<_ExamEditor> createState() => _ExamEditorState();
@@ -43,13 +57,18 @@ class _ExamEditor extends ConsumerStatefulWidget {
 
 class _ExamEditorState extends ConsumerState<_ExamEditor> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  final _location = TextEditingController();
-  final _notes = TextEditingController();
-  late String _facultyId = widget.initialFacultyId;
-  String? _subjectId;
-  DateTime _date = DateTime.now();
-  TimeOfDay _time = const TimeOfDay(hour: 9, minute: 0);
+  late final _title = TextEditingController(text: widget.initialExam?.title);
+  late final _location = TextEditingController(
+    text: widget.initialExam?.location,
+  );
+  late final _notes = TextEditingController(text: widget.initialExam?.notes);
+  late String _facultyId =
+      widget.initialExam?.facultyId ?? widget.initialFacultyId;
+  late String? _subjectId = widget.initialExam?.subjectId;
+  late DateTime _date = widget.initialExam?.scheduledAt ?? DateTime.now();
+  late TimeOfDay _time = widget.initialExam == null
+      ? const TimeOfDay(hour: 9, minute: 0)
+      : TimeOfDay.fromDateTime(widget.initialExam!.scheduledAt);
 
   @override
   void dispose() {
@@ -76,7 +95,9 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                strings.addExamTitle,
+                widget.initialExam == null
+                    ? strings.addExamTitle
+                    : strings.editExam,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 16),
@@ -91,6 +112,7 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _facultyId,
+                menuMaxHeight: 320,
                 decoration: InputDecoration(labelText: strings.faculty),
                 items: widget.data.faculties
                     .map(
@@ -114,6 +136,7 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 initialValue: _subjectId,
+                menuMaxHeight: 320,
                 decoration: InputDecoration(labelText: strings.subjectOptional),
                 items: [
                   DropdownMenuItem(value: null, child: Text(strings.noSubject)),
@@ -195,41 +218,62 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final exam = ref
-        .read(plannerProvider.notifier)
-        .newExam(
-          title: _title.text.trim(),
-          subjectId: _subjectId,
-          facultyId: _facultyId,
-          scheduledAt: DateTime(
-            _date.year,
-            _date.month,
-            _date.day,
-            _time.hour,
-            _time.minute,
-          ),
-          location: _location.text.trim(),
-          notes: _notes.text.trim(),
-        );
+    final scheduledAt = DateTime(
+      _date.year,
+      _date.month,
+      _date.day,
+      _time.hour,
+      _time.minute,
+    );
+    final existing = widget.initialExam;
+    final exam = existing == null
+        ? ref
+              .read(plannerProvider.notifier)
+              .newExam(
+                title: _title.text.trim(),
+                subjectId: _subjectId,
+                facultyId: _facultyId,
+                scheduledAt: scheduledAt,
+                location: _location.text.trim(),
+                notes: _notes.text.trim(),
+              )
+        : Exam(
+            id: existing.id,
+            title: _title.text.trim(),
+            subjectId: _subjectId,
+            facultyId: _facultyId,
+            scheduledAt: scheduledAt,
+            location: _location.text.trim(),
+            notes: _notes.text.trim(),
+            createdAt: existing.createdAt,
+          );
     await ref.read(plannerProvider.notifier).saveExam(exam);
     if (mounted) Navigator.pop(context);
   }
 }
 
 class _ExamPeriodEditor extends ConsumerStatefulWidget {
-  const _ExamPeriodEditor({required this.data, required this.initialFacultyId});
+  const _ExamPeriodEditor({
+    required this.data,
+    required this.initialFacultyId,
+    required this.initialExamPeriod,
+  });
 
   final PlannerData data;
   final String initialFacultyId;
+  final ExamPeriod? initialExamPeriod;
 
   @override
   ConsumerState<_ExamPeriodEditor> createState() => _ExamPeriodEditorState();
 }
 
 class _ExamPeriodEditorState extends ConsumerState<_ExamPeriodEditor> {
-  late String _facultyId = widget.initialFacultyId;
-  DateTime _start = DateTime.now();
-  DateTime _end = DateTime.now().add(const Duration(days: 21));
+  late String _facultyId =
+      widget.initialExamPeriod?.facultyId ?? widget.initialFacultyId;
+  late DateTime _start = widget.initialExamPeriod?.startDate ?? DateTime.now();
+  late DateTime _end =
+      widget.initialExamPeriod?.endDate ??
+      DateTime.now().add(const Duration(days: 21));
 
   @override
   Widget build(BuildContext context) {
@@ -250,25 +294,38 @@ class _ExamPeriodEditorState extends ConsumerState<_ExamPeriodEditor> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: _facultyId,
-            decoration: InputDecoration(labelText: strings.faculty),
-            items: widget.data.faculties
-                .map(
-                  (faculty) => DropdownMenuItem(
-                    value: faculty.id,
-                    child: Row(
-                      children: [
-                        FacultyBadge(facultyId: faculty.id, compact: true),
-                        const SizedBox(width: 16),
-                        Text(faculty.localizedName(strings.languageCode)),
-                      ],
+          if (widget.initialExamPeriod == null)
+            DropdownButtonFormField<String>(
+              initialValue: _facultyId,
+              menuMaxHeight: 320,
+              decoration: InputDecoration(labelText: strings.faculty),
+              items: widget.data.faculties
+                  .map(
+                    (faculty) => DropdownMenuItem(
+                      value: faculty.id,
+                      child: Row(
+                        children: [
+                          FacultyBadge(facultyId: faculty.id, compact: true),
+                          const SizedBox(width: 16),
+                          Text(faculty.localizedName(strings.languageCode)),
+                        ],
+                      ),
                     ),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) => setState(() => _facultyId = value!),
-          ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _facultyId = value!),
+            )
+          else
+            Row(
+              children: [
+                Text(
+                  strings.faculty,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(width: 12),
+                FacultyBadge(facultyId: _facultyId, compact: true),
+              ],
+            ),
           const SizedBox(height: 12),
           Row(
             children: [

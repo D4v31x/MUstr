@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/planner_task.dart';
 import '../../domain/entities/faculty.dart';
@@ -24,7 +25,7 @@ class SqlitePlannerRepository implements PlannerRepository {
     final directory = await getApplicationDocumentsDirectory();
     final database = await openDatabase(
       path.join(directory.path, 'muni_planner.db'),
-      version: 9,
+      version: 10,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE timetables (
@@ -71,7 +72,8 @@ class SqlitePlannerRepository implements PlannerRepository {
         await _createImportantDateTable(db);
         await db.execute('''
           CREATE TABLE lesson_preferences (
-            lesson_id TEXT PRIMARY KEY, priority INTEGER NOT NULL, color_value INTEGER
+            lesson_id TEXT PRIMARY KEY, priority INTEGER NOT NULL, color_value INTEGER,
+            reminder_at TEXT
           )
         ''');
       },
@@ -134,6 +136,11 @@ class SqlitePlannerRepository implements PlannerRepository {
         } else if (oldVersion < 9) {
           await _addImportantDateTimeColumns(db);
         }
+        if (oldVersion < 10) {
+          await db.execute(
+            'ALTER TABLE lesson_preferences ADD COLUMN reminder_at TEXT',
+          );
+        }
       },
     );
     await _ensureImportantDateTable(database);
@@ -162,9 +169,38 @@ class SqlitePlannerRepository implements PlannerRepository {
     final themeMode = AppThemeMode.fromCode(
       themeModeRows.isEmpty ? null : themeModeRows.single['value'] as String,
     );
-    final remindersEnabled = await _readFlag(db, 'reminders_enabled');
-    final showRoomInSchedule = await _readFlag(db, 'show_room_in_schedule');
-    final highlightCurrentDay = await _readFlag(db, 'highlight_current_day');
+    final colorThemeRows = await db.query(
+      'app_settings',
+      where: 'key = ?',
+      whereArgs: ['color_theme'],
+    );
+    final colorTheme = AppColorTheme.fromCode(
+      colorThemeRows.isEmpty ? null : colorThemeRows.single['value'] as String,
+    );
+    final remindersEnabled = await _readFlag(
+      db,
+      'reminders_enabled',
+      defaultValue: true,
+    );
+    final showRoomInSchedule = await _readFlag(
+      db,
+      'show_room_in_schedule',
+      defaultValue: true,
+    );
+    final highlightCurrentDay = await _readFlag(
+      db,
+      'highlight_current_day',
+      defaultValue: true,
+    );
+    final analyticsConsent = await _readFlag(
+      db,
+      'analytics_consent',
+      defaultValue: false,
+    );
+    final analyticsInstallationId = await _readSetting(
+      db,
+      'analytics_installation_id',
+    );
     final membershipRows = await db.query(
       'faculty_memberships',
       orderBy: 'faculty_id',
@@ -235,10 +271,13 @@ class SqlitePlannerRepository implements PlannerRepository {
       faculties: faculties,
       language: language,
       themeMode: themeMode,
+      colorTheme: colorTheme,
       lessonStyle: lessonStyle,
       remindersEnabled: remindersEnabled,
       showRoomInSchedule: showRoomInSchedule,
       highlightCurrentDay: highlightCurrentDay,
+      analyticsConsent: analyticsConsent,
+      analyticsInstallationId: analyticsInstallationId,
       exams: exams,
       examPeriods: examPeriods,
       importantDates: importantDates,
@@ -467,6 +506,15 @@ class SqlitePlannerRepository implements PlannerRepository {
   }
 
   @override
+  Future<void> saveColorTheme(AppColorTheme theme) async {
+    final db = await _db;
+    await db.insert('app_settings', {
+      'key': 'color_theme',
+      'value': theme.code,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
   Future<void> saveRemindersEnabled(bool enabled) async =>
       _saveFlag('reminders_enabled', enabled);
 
@@ -478,6 +526,38 @@ class SqlitePlannerRepository implements PlannerRepository {
   Future<void> saveHighlightCurrentDay(bool enabled) async =>
       _saveFlag('highlight_current_day', enabled);
 
+  @override
+  Future<void> saveAnalyticsConsent(bool enabled) async {
+    final db = await _db;
+    await db.transaction((transaction) async {
+      await transaction.insert('app_settings', {
+        'key': 'analytics_consent',
+        'value': enabled ? '1' : '0',
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      if (enabled) {
+        final existing = await transaction.query(
+          'app_settings',
+          columns: ['value'],
+          where: 'key = ?',
+          whereArgs: ['analytics_installation_id'],
+          limit: 1,
+        );
+        if (existing.isEmpty) {
+          await transaction.insert('app_settings', {
+            'key': 'analytics_installation_id',
+            'value': const Uuid().v4(),
+          });
+        }
+      } else {
+        await transaction.delete(
+          'app_settings',
+          where: 'key = ?',
+          whereArgs: ['analytics_installation_id'],
+        );
+      }
+    });
+  }
+
   Future<void> _saveFlag(String key, bool value) async {
     final db = await _db;
     await db.insert('app_settings', {
@@ -486,13 +566,28 @@ class SqlitePlannerRepository implements PlannerRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<bool> _readFlag(Database db, String key) async {
+  Future<bool> _readFlag(
+    Database db,
+    String key, {
+    required bool defaultValue,
+  }) async {
     final rows = await db.query(
       'app_settings',
       where: 'key = ?',
       whereArgs: [key],
     );
-    return rows.isEmpty ? true : rows.single['value'] == '1';
+    return rows.isEmpty ? defaultValue : rows.single['value'] == '1';
+  }
+
+  Future<String?> _readSetting(Database db, String key) async {
+    final rows = await db.query(
+      'app_settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.single['value'] as String;
   }
 
   @override
@@ -507,6 +602,22 @@ class SqlitePlannerRepository implements PlannerRepository {
         'key': 'seminar_color',
         'value': '${style.seminarColorValue}',
       }, conflictAlgorithm: ConflictAlgorithm.replace);
+      await transaction.insert('app_settings', {
+        'key': 'exam_color',
+        'value': '${style.examColorValue}',
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      await transaction.insert('app_settings', {
+        'key': 'important_date_color',
+        'value': '${style.importantDateColorValue}',
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      await transaction.insert('app_settings', {
+        'key': 'exam_period_color',
+        'value': '${style.examPeriodColorValue}',
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      await transaction.insert('app_settings', {
+        'key': 'subject_colors',
+        'value': jsonEncode(style.subjectColorValues),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     });
   }
 
@@ -517,6 +628,7 @@ class SqlitePlannerRepository implements PlannerRepository {
       'lesson_id': lesson.id,
       'priority': lesson.priority.index,
       'color_value': lesson.customColorValue,
+      'reminder_at': lesson.reminderAt?.toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -739,6 +851,7 @@ class SqlitePlannerRepository implements PlannerRepository {
               ? LessonPriority.high
               : LessonPriority.normal),
       customColorValue: preference?.colorValue,
+      reminderAt: preference?.reminderAt,
       rooms: rooms,
       teachers: teachers,
     );
@@ -777,8 +890,15 @@ class SqlitePlannerRepository implements PlannerRepository {
   Future<LessonStyleSettings> _readLessonStyle(Database db) async {
     final rows = await db.query(
       'app_settings',
-      where: 'key IN (?, ?)',
-      whereArgs: ['lecture_color', 'seminar_color'],
+      where: 'key IN (?, ?, ?, ?, ?, ?)',
+      whereArgs: [
+        'lecture_color',
+        'seminar_color',
+        'exam_color',
+        'important_date_color',
+        'exam_period_color',
+        'subject_colors',
+      ],
     );
     final values = {
       for (final row in rows)
@@ -787,7 +907,26 @@ class SqlitePlannerRepository implements PlannerRepository {
     return LessonStyleSettings(
       lectureColorValue: values['lecture_color'] ?? 0xff2563eb,
       seminarColorValue: values['seminar_color'] ?? 0xffd04a02,
+      examColorValue: values['exam_color'] ?? 0xffba1a1a,
+      importantDateColorValue: values['important_date_color'] ?? 0xff6750a4,
+      examPeriodColorValue: values['exam_period_color'] ?? 0xff006c65,
+      subjectColorValues: _readSubjectColors(rows),
     );
+  }
+
+  Map<String, int> _readSubjectColors(List<Map<String, Object?>> rows) {
+    final encoded = rows
+        .where((row) => row['key'] == 'subject_colors')
+        .map((row) => row['value'] as String)
+        .firstOrNull;
+    if (encoded == null) return const {};
+    try {
+      return (jsonDecode(encoded) as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, value as int),
+      );
+    } on FormatException {
+      return const {};
+    }
   }
 
   Future<Map<String, _LessonPreference>> _readLessonPreferences(
@@ -799,6 +938,9 @@ class SqlitePlannerRepository implements PlannerRepository {
         row['lesson_id']! as String: _LessonPreference(
           priority: LessonPriority.values[row['priority']! as int],
           colorValue: row['color_value'] as int?,
+          reminderAt: row['reminder_at'] == null
+              ? null
+              : DateTime.parse(row['reminder_at']! as String),
         ),
     };
   }
@@ -910,8 +1052,13 @@ class SqlitePlannerRepository implements PlannerRepository {
 }
 
 class _LessonPreference {
-  const _LessonPreference({required this.priority, required this.colorValue});
+  const _LessonPreference({
+    required this.priority,
+    required this.colorValue,
+    required this.reminderAt,
+  });
 
   final LessonPriority priority;
   final int? colorValue;
+  final DateTime? reminderAt;
 }

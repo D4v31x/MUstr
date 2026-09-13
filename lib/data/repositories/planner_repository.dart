@@ -13,10 +13,13 @@ class PlannerData {
     required this.faculties,
     required this.language,
     this.themeMode = AppThemeMode.system,
+    this.colorTheme = AppColorTheme.materialYou,
     this.lessonStyle = const LessonStyleSettings(),
     this.remindersEnabled = true,
     this.showRoomInSchedule = true,
     this.highlightCurrentDay = true,
+    this.analyticsConsent = false,
+    this.analyticsInstallationId,
     this.exams = const [],
     this.examPeriods = const [],
     List<ImportantDate>? importantDates,
@@ -29,10 +32,13 @@ class PlannerData {
   final List<Faculty> faculties;
   final AppLanguage language;
   final AppThemeMode themeMode;
+  final AppColorTheme colorTheme;
   final LessonStyleSettings lessonStyle;
   final bool remindersEnabled;
   final bool showRoomInSchedule;
   final bool highlightCurrentDay;
+  final bool analyticsConsent;
+  final String? analyticsInstallationId;
   final List<Exam> exams;
   final List<ExamPeriod> examPeriods;
   final List<ImportantDate>? _importantDates;
@@ -46,10 +52,13 @@ class PlannerData {
     List<Faculty>? faculties,
     AppLanguage? language,
     AppThemeMode? themeMode,
+    AppColorTheme? colorTheme,
     LessonStyleSettings? lessonStyle,
     bool? remindersEnabled,
     bool? showRoomInSchedule,
     bool? highlightCurrentDay,
+    bool? analyticsConsent,
+    String? analyticsInstallationId,
     List<Exam>? exams,
     List<ExamPeriod>? examPeriods,
     List<ImportantDate>? importantDates,
@@ -61,10 +70,14 @@ class PlannerData {
     faculties: faculties ?? this.faculties,
     language: language ?? this.language,
     themeMode: themeMode ?? this.themeMode,
+    colorTheme: colorTheme ?? this.colorTheme,
     lessonStyle: lessonStyle ?? this.lessonStyle,
     remindersEnabled: remindersEnabled ?? this.remindersEnabled,
     showRoomInSchedule: showRoomInSchedule ?? this.showRoomInSchedule,
     highlightCurrentDay: highlightCurrentDay ?? this.highlightCurrentDay,
+    analyticsConsent: analyticsConsent ?? this.analyticsConsent,
+    analyticsInstallationId:
+        analyticsInstallationId ?? this.analyticsInstallationId,
     exams: exams ?? this.exams,
     examPeriods: examPeriods ?? this.examPeriods,
     importantDates: importantDates ?? this.importantDates,
@@ -99,10 +112,13 @@ class PlannerData {
       faculties: faculties,
       language: language,
       themeMode: themeMode,
+      colorTheme: colorTheme,
       lessonStyle: lessonStyle,
       remindersEnabled: remindersEnabled,
       showRoomInSchedule: showRoomInSchedule,
       highlightCurrentDay: highlightCurrentDay,
+      analyticsConsent: analyticsConsent,
+      analyticsInstallationId: analyticsInstallationId,
       exams: exams,
       examPeriods: examPeriods,
       importantDates: importantDates,
@@ -142,10 +158,13 @@ class PlannerData {
       faculties: faculties,
       language: language,
       themeMode: themeMode,
+      colorTheme: colorTheme,
       lessonStyle: lessonStyle,
       remindersEnabled: remindersEnabled,
       showRoomInSchedule: showRoomInSchedule,
       highlightCurrentDay: highlightCurrentDay,
+      analyticsConsent: analyticsConsent,
+      analyticsInstallationId: analyticsInstallationId,
       exams: exams.where((exam) => exam.facultyId == facultyId).toList(),
       examPeriods: examPeriods
           .where((period) => period.facultyId == facultyId)
@@ -173,10 +192,12 @@ abstract interface class PlannerRepository {
   Future<void> saveFacultyMemberships(List<String> facultyIds);
   Future<void> saveLanguage(AppLanguage language);
   Future<void> saveThemeMode(AppThemeMode mode);
+  Future<void> saveColorTheme(AppColorTheme theme);
   Future<void> saveLessonStyle(LessonStyleSettings style);
   Future<void> saveRemindersEnabled(bool enabled);
   Future<void> saveShowRoomInSchedule(bool enabled);
   Future<void> saveHighlightCurrentDay(bool enabled);
+  Future<void> saveAnalyticsConsent(bool enabled);
   Future<void> saveLessonPresentation(Lesson lesson);
   Future<void> saveExam(Exam exam);
   Future<void> deleteExam(String examId);

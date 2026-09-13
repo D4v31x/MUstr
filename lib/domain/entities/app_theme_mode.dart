@@ -20,3 +20,21 @@ enum AppThemeMode {
     orElse: () => AppThemeMode.system,
   );
 }
+
+enum AppColorTheme {
+  materialYou('material_you', null),
+  muniBlue('muni_blue', Color(0xff005ca9)),
+  emerald('emerald', Color(0xff047857)),
+  coral('coral', Color(0xffbe123c));
+
+  const AppColorTheme(this.code, this.seedColor);
+
+  final String code;
+  final Color? seedColor;
+
+  static AppColorTheme fromCode(String? code) =>
+      AppColorTheme.values.firstWhere(
+        (theme) => theme.code == code,
+        orElse: () => AppColorTheme.materialYou,
+      );
+}

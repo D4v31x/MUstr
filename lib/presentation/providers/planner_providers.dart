@@ -15,6 +15,7 @@ import '../../domain/entities/exam.dart';
 import '../../domain/entities/important_date.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/analytics_service.dart';
 
 final plannerRepositoryProvider = Provider<PlannerRepository>(
   (ref) => SqlitePlannerRepository(),
@@ -41,9 +42,13 @@ class PlannerController extends AsyncNotifier<PlannerData> {
       // The planner remains usable if a platform has no notification support.
     }
     final data = await _repository.load();
+    unawaited(_configureAnalytics(data));
     if (data.remindersEnabled) {
       for (final importantDate in data.importantDates) {
         unawaited(_scheduler.scheduleImportantDate(importantDate));
+      }
+      for (final lesson in data.timetable?.lessons ?? const <Lesson>[]) {
+        unawaited(_scheduler.scheduleLesson(lesson));
       }
     }
     unawaited(updateScheduleWidget(data));
@@ -186,6 +191,12 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     await _refresh();
   }
 
+  Future<void> saveColorTheme(AppColorTheme theme) async {
+    _publish(_currentData.copyWith(colorTheme: theme));
+    await _repository.saveColorTheme(theme);
+    await _refresh();
+  }
+
   Future<void> saveRemindersEnabled(bool enabled) async {
     _publish(_currentData.copyWith(remindersEnabled: enabled));
     await _repository.saveRemindersEnabled(enabled);
@@ -204,6 +215,12 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     await _refresh();
   }
 
+  Future<void> saveAnalyticsConsent(bool enabled) async {
+    _publish(_currentData.copyWith(analyticsConsent: enabled));
+    await _repository.saveAnalyticsConsent(enabled);
+    await _refresh();
+  }
+
   Future<void> saveLessonStyle(LessonStyleSettings style) async {
     _publish(_currentData.copyWith(lessonStyle: style));
     await _repository.saveLessonStyle(style);
@@ -213,6 +230,11 @@ class PlannerController extends AsyncNotifier<PlannerData> {
   Future<void> saveLessonPresentation(Lesson lesson) async {
     _publish(_withLessonPresentation(_currentData, lesson));
     await _repository.saveLessonPresentation(lesson);
+    if (_currentData.remindersEnabled) {
+      await _scheduler.scheduleLesson(lesson);
+    } else {
+      await _scheduler.cancelLesson(lesson.id);
+    }
     await _refresh();
   }
 
@@ -444,9 +466,17 @@ class PlannerController extends AsyncNotifier<PlannerData> {
   Future<PlannerData> _refresh() async {
     final data = await _repository.load();
     state = AsyncData(data);
+    unawaited(_configureAnalytics(data));
     unawaited(updateScheduleWidget(data));
     return data;
   }
+
+  Future<void> _configureAnalytics(PlannerData data) =>
+      analyticsService.configure(
+        consentGranted: data.analyticsConsent,
+        installationId: data.analyticsInstallationId,
+        facultyIds: data.faculties.map((faculty) => faculty.id),
+      );
 
   PlannerData get _currentData => switch (state) {
     AsyncData(:final value) => value,

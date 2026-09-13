@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/exam.dart';
+import '../../domain/entities/important_date.dart';
 import '../../domain/entities/timetable.dart';
 import '../widgets/lesson_detail_sheet.dart';
 import '../widgets/planner_formatters.dart';
@@ -67,7 +68,7 @@ class _WeekScreenState extends State<WeekScreen> {
                       ),
                     ),
                     Text(
-                      '${compactDate(context, _week)} - ${compactDate(context, _week.add(const Duration(days: 6)))}',
+                      '${compactDate(context, _week)} - ${compactDate(context, addCalendarDays(_week, 6))}',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ],
@@ -95,14 +96,14 @@ class _WeekScreenState extends State<WeekScreen> {
             controller: _pageController,
             onPageChanged: (page) => setState(
               () => _week = mondayFor(
-                DateTime.now(),
-              ).add(Duration(days: (page - _originPage) * 7)),
+                addCalendarDays(DateTime.now(), (page - _originPage) * 7),
+              ),
             ),
             itemBuilder: (context, page) => WeekBoard(
               data: widget.data,
               week: mondayFor(
-                DateTime.now(),
-              ).add(Duration(days: (page - _originPage) * 7)),
+                addCalendarDays(DateTime.now(), (page - _originPage) * 7),
+              ),
             ),
           ),
         ),
@@ -123,7 +124,7 @@ class _WeekScreenState extends State<WeekScreen> {
     final selectedWeek = mondayFor(selectedDate);
     final currentWeek = mondayFor(DateTime.now());
     final targetPage =
-        _originPage + selectedWeek.difference(currentWeek).inDays ~/ 7;
+        _originPage + calendarDayDifference(currentWeek, selectedWeek) ~/ 7;
     await _pageController.animateToPage(
       targetPage,
       duration: const Duration(milliseconds: 260),
@@ -146,6 +147,7 @@ class _WeekBoardState extends State<WeekBoard> {
   late final Timer _clock;
   final _hController = ScrollController();
   final _vController = ScrollController();
+  var _didSetInitialTimeOffset = false;
 
   @override
   void initState() {
@@ -163,21 +165,26 @@ class _WeekBoardState extends State<WeekBoard> {
 
   @override
   Widget build(BuildContext context) {
-    final weekEnd = widget.week.add(const Duration(days: 6));
+    final weekEnd = addCalendarDays(widget.week, 6);
     final lessons = widget.data.timetable!.lessons
         .where(
           (lesson) =>
               !lesson.date.isBefore(widget.week) &&
-              lesson.date.isBefore(widget.week.add(const Duration(days: 7))),
+              lesson.date.isBefore(addCalendarDays(widget.week, 7)),
         )
         .toList();
     final exams = widget.data.exams
         .where(
           (exam) =>
               !exam.scheduledAt.isBefore(widget.week) &&
-              exam.scheduledAt.isBefore(
-                widget.week.add(const Duration(days: 7)),
-              ),
+              exam.scheduledAt.isBefore(addCalendarDays(widget.week, 7)),
+        )
+        .toList();
+    final importantDates = widget.data.importantDates
+        .where(
+          (importantDate) =>
+              !importantDate.date.isBefore(widget.week) &&
+              importantDate.date.isBefore(addCalendarDays(widget.week, 7)),
         )
         .toList();
     final activeExamPeriods = widget.data.examPeriods
@@ -190,7 +197,16 @@ class _WeekBoardState extends State<WeekBoard> {
     final items = [
       for (final lesson in lessons) _WeekItem.forLesson(lesson),
       for (final exam in exams) _WeekItem.forExam(exam),
+      for (final importantDate in importantDates)
+        _WeekItem.forImportantDate(importantDate),
     ];
+    final crowdedGroups = _overlapGroups(
+      items,
+    ).where((group) => group.length >= 3).toList();
+    final crowdedItems = crowdedGroups.expand((group) => group).toSet();
+    final individualItems = items
+        .where((item) => !crowdedItems.contains(item))
+        .toList();
     final earliest = items.isEmpty
         ? 420
         : (items
@@ -212,20 +228,29 @@ class _WeekBoardState extends State<WeekBoard> {
     const rail = 68.0;
     const dayHeight = 92.0;
     const header = 48.0;
-    final gridWidth = (endMinute - startMinute) * scale;
+    const hourLabelHalfWidth = 24.0;
+    final gridWidth = (endMinute - startMinute) * scale + hourLabelHalfWidth;
     final gridHeight = dayHeight * 7;
     final scheme = Theme.of(context).colorScheme;
     final todayIndex = widget.data.highlightCurrentDay
         ? List<int>.generate(7, (day) => day).firstWhere(
             (day) =>
-                _sameDay(widget.week.add(Duration(days: day)), DateTime.now()),
+                _sameDay(addCalendarDays(widget.week, day), DateTime.now()),
             orElse: () => -1,
           )
         : -1;
+    _focusCurrentTime(
+      startMinute: startMinute,
+      endMinute: endMinute,
+      scale: scale,
+    );
     return Column(
       children: [
         if (activeExamPeriods.isNotEmpty)
-          _ExamPeriodBanner(periods: activeExamPeriods),
+          _ExamPeriodBanner(
+            periods: activeExamPeriods,
+            colorValue: widget.data.lessonStyle.examPeriodColorValue,
+          ),
         Expanded(
           child: Column(
             children: [
@@ -387,11 +412,20 @@ class _WeekBoardState extends State<WeekBoard> {
                                         color: scheme.outlineVariant,
                                       ),
                                     ),
-                                  ...items.map(
+                                  ...individualItems.map(
                                     (item) => _positionedItem(
                                       context,
                                       item,
-                                      items,
+                                      individualItems,
+                                      startMinute,
+                                      scale,
+                                      dayHeight,
+                                    ),
+                                  ),
+                                  ...crowdedGroups.map(
+                                    (group) => _positionedEventStack(
+                                      context,
+                                      group,
                                       startMinute,
                                       scale,
                                       dayHeight,
@@ -420,8 +454,60 @@ class _WeekBoardState extends State<WeekBoard> {
     );
   }
 
+  List<List<_WeekItem>> _overlapGroups(List<_WeekItem> items) {
+    final groups = <List<_WeekItem>>[];
+    for (var day = 0; day < 7; day++) {
+      final dayItems =
+          items
+              .where(
+                (item) => calendarDayDifference(widget.week, item.start) == day,
+              )
+              .toList()
+            ..sort((first, second) => first.start.compareTo(second.start));
+      var group = <_WeekItem>[];
+      DateTime? groupEnd;
+      for (final item in dayItems) {
+        if (groupEnd != null && !item.start.isBefore(groupEnd)) {
+          groups.add(group);
+          group = <_WeekItem>[];
+          groupEnd = null;
+        }
+        group.add(item);
+        if (groupEnd == null || item.end.isAfter(groupEnd)) {
+          groupEnd = item.end;
+        }
+      }
+      if (group.isNotEmpty) groups.add(group);
+    }
+    return groups;
+  }
+
+  void _focusCurrentTime({
+    required int startMinute,
+    required int endMinute,
+    required double scale,
+  }) {
+    final currentWeekDay = calendarDayDifference(widget.week, DateTime.now());
+    if (_didSetInitialTimeOffset || currentWeekDay < 0 || currentWeekDay > 6) {
+      return;
+    }
+    _didSetInitialTimeOffset = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_hController.hasClients) return;
+      final now = DateTime.now();
+      final minute = now.hour * 60 + now.minute;
+      final clampedMinute = minute.clamp(startMinute, endMinute).toDouble();
+      final target =
+          (clampedMinute - startMinute) * scale -
+          _hController.position.viewportDimension * 0.35;
+      _hController.jumpTo(
+        target.clamp(0.0, _hController.position.maxScrollExtent),
+      );
+    });
+  }
+
   Widget _dayLabel(BuildContext context, int day, double top, double height) {
-    final date = widget.week.add(Duration(days: day));
+    final date = addCalendarDays(widget.week, day);
     final isToday = _sameDay(date, DateTime.now());
     return Positioned(
       left: 0,
@@ -468,36 +554,68 @@ class _WeekBoardState extends State<WeekBoard> {
     final index = conflicts.indexOf(item);
     final minute = item.start.hour * 60 + item.start.minute;
     final duration = item.end.difference(item.start).inMinutes;
-    final itemHeight = (dayHeight - 8) / conflicts.length;
+    final itemSlotHeight = (dayHeight - 8) / conflicts.length;
+    final itemHeight = (itemSlotHeight - 4)
+        .clamp(2, double.infinity)
+        .toDouble();
     final scheme = Theme.of(context).colorScheme;
-    final fillColor = item.isExam
-        ? scheme.error
-        : lessonColor(scheme, item.lesson!, widget.data.lessonStyle);
+    final fillColor = switch (item) {
+      _WeekItem(exam: != null) => Color(widget.data.lessonStyle.examColorValue),
+      _WeekItem(importantDate: != null) => Color(
+        widget.data.lessonStyle.importantDateColorValue,
+      ),
+      _ => lessonColor(scheme, item.lesson!, widget.data.lessonStyle),
+    };
     final foregroundColor = readableTextColor(fillColor);
     return Positioned(
       left: (minute - startMinute) * scale + 2,
-      top: (item.start.weekday - 1) * dayHeight + 4 + index * itemHeight,
+      top:
+          calendarDayDifference(widget.week, item.start) * dayHeight +
+          4 +
+          index * itemSlotHeight,
       width: (duration * scale - 4).clamp(34, double.infinity),
-      height: itemHeight - 4,
+      height: itemHeight,
       child: Material(
         color: fillColor,
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
           borderRadius: BorderRadius.circular(6),
-          onTap: () => item.isExam
-              ? _showExamDetails(context, item.exam!)
-              : showLessonDetails(
+          onTap: item.isExam
+              ? () => _showExamDetails(context, item.exam!)
+              : item.isImportantDate
+              ? null
+              : () => showLessonDetails(
                   context,
                   item.lesson!,
                   style: widget.data.lessonStyle,
                 ),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final showCode = constraints.maxHeight >= 34;
+              final showTitle = constraints.maxHeight >= 22;
+              final showCode = constraints.maxHeight >= 40;
               final showRoom =
-                  widget.data.showRoomInSchedule && constraints.maxHeight >= 60;
+                  widget.data.showRoomInSchedule && constraints.maxHeight >= 58;
+              final title = item.isExam
+                  ? context.strings.exam
+                  : item.isImportantDate
+                  ? context.strings.importantDate
+                  : item.lesson!.courseName;
+              final detail = item.isExam
+                  ? item.exam!.title
+                  : item.isImportantDate
+                  ? item.importantDate!.title
+                  : timetableCodeLabel(item.lesson!);
+              if (!showTitle) {
+                return Semantics(
+                  label: '$title: $detail',
+                  child: Tooltip(
+                    message: '$title: $detail',
+                    child: const SizedBox.expand(),
+                  ),
+                );
+              }
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 child: DefaultTextStyle(
                   style: Theme.of(context).textTheme.labelSmall!.copyWith(
                     color: foregroundColor,
@@ -507,9 +625,7 @@ class _WeekBoardState extends State<WeekBoard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item.isExam
-                            ? context.strings.exam
-                            : item.lesson!.courseName,
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.labelMedium
@@ -521,9 +637,7 @@ class _WeekBoardState extends State<WeekBoard> {
                       ),
                       if (showCode)
                         Text(
-                          item.isExam
-                              ? item.exam!.title
-                              : timetableCodeLabel(item.lesson!),
+                          detail,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -544,6 +658,140 @@ class _WeekBoardState extends State<WeekBoard> {
     );
   }
 
+  Widget _positionedEventStack(
+    BuildContext context,
+    List<_WeekItem> items,
+    int startMinute,
+    double scale,
+    double dayHeight,
+  ) {
+    final start = items
+        .map((item) => item.start)
+        .reduce((first, second) => first.isBefore(second) ? first : second);
+    final end = items
+        .map((item) => item.end)
+        .reduce((first, second) => first.isAfter(second) ? first : second);
+    final minute = start.hour * 60 + start.minute;
+    final duration = end.difference(start).inMinutes;
+    final scheme = Theme.of(context).colorScheme;
+    return Positioned(
+      left: (minute - startMinute) * scale + 2,
+      top: calendarDayDifference(widget.week, start) * dayHeight + 4,
+      width: (duration * scale - 4).clamp(72, double.infinity),
+      height: dayHeight - 8,
+      child: Material(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => _showEventStack(context, items),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                Icon(Icons.layers_outlined, color: scheme.onSecondaryContainer),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${items.length} ${context.strings.scheduledEvents}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: scheme.onSecondaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEventStack(
+    BuildContext context,
+    List<_WeekItem> items,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.65,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '${items.length} ${context.strings.scheduledEvents}',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final title = item.isExam
+                        ? item.exam!.title
+                        : item.isImportantDate
+                        ? item.importantDate!.title
+                        : item.lesson!.courseName;
+                    final type = item.isExam
+                        ? context.strings.exam
+                        : item.isImportantDate
+                        ? context.strings.importantDate
+                        : timetableCodeLabel(item.lesson!);
+                    final time =
+                        item.isImportantDate &&
+                            item.importantDate!.timeMinute == null
+                        ? context.strings.allDay
+                        : '${timeLabel(item.start)} - ${timeLabel(item.end)}';
+                    return ListTile(
+                      leading: Icon(
+                        item.isExam
+                            ? Icons.school_outlined
+                            : item.isImportantDate
+                            ? Icons.bookmark_outline_rounded
+                            : Icons.event_note_outlined,
+                      ),
+                      title: Text(title),
+                      subtitle: Text('$type | $time'),
+                      onTap: item.isExam
+                          ? () {
+                              Navigator.of(context).pop();
+                              _showExamDetails(context, item.exam!);
+                            }
+                          : item.isImportantDate
+                          ? null
+                          : () {
+                              Navigator.of(context).pop();
+                              showLessonDetails(
+                                context,
+                                item.lesson!,
+                                style: widget.data.lessonStyle,
+                              );
+                            },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
   Future<void> _showExamDetails(
     BuildContext context,
     Exam exam,
@@ -560,7 +808,7 @@ class _WeekBoardState extends State<WeekBoard> {
             Text(
               context.strings.exam,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.error,
+                color: Color(widget.data.lessonStyle.examColorValue),
               ),
             ),
             const SizedBox(height: 4),
@@ -587,7 +835,7 @@ class _WeekBoardState extends State<WeekBoard> {
   Widget _nowLine(int start, int end, double scale, double gridHeight) {
     final now = DateTime.now();
     if (now.isBefore(widget.week) ||
-        !now.isBefore(widget.week.add(const Duration(days: 7)))) {
+        !now.isBefore(addCalendarDays(widget.week, 7))) {
       return const SizedBox();
     }
     final minute = now.hour * 60 + now.minute;
@@ -612,21 +860,36 @@ class _WeekItem {
   _WeekItem.forLesson(Lesson value)
     : lesson = value,
       exam = null,
+      importantDate = null,
       start = value.startTime,
       end = value.endTime;
 
   _WeekItem.forExam(Exam value)
     : lesson = null,
       exam = value,
+      importantDate = null,
       start = value.scheduledAt,
       end = value.scheduledAt.add(_examDuration);
 
+  _WeekItem.forImportantDate(ImportantDate value)
+    : lesson = null,
+      exam = null,
+      importantDate = value,
+      start = value.timeMinute == null
+          ? DateTime(value.date.year, value.date.month, value.date.day, 6)
+          : value.scheduledAt,
+      end = value.timeMinute == null
+          ? DateTime(value.date.year, value.date.month, value.date.day, 7)
+          : value.scheduledAt.add(const Duration(hours: 1));
+
   final Lesson? lesson;
   final Exam? exam;
+  final ImportantDate? importantDate;
   final DateTime start;
   final DateTime end;
 
   bool get isExam => exam != null;
+  bool get isImportantDate => importantDate != null;
   String get location => isExam
       ? exam!.location
       : lesson!.rooms.isEmpty
@@ -635,29 +898,28 @@ class _WeekItem {
 }
 
 class _ExamPeriodBanner extends StatelessWidget {
-  const _ExamPeriodBanner({required this.periods});
+  const _ExamPeriodBanner({required this.periods, required this.colorValue});
 
   final List<ExamPeriod> periods;
+  final int colorValue;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final color = Color(colorValue);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.tertiaryContainer,
+          color: color.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.event_available_outlined,
-              color: scheme.onTertiaryContainer,
-            ),
+            Icon(Icons.event_available_outlined, color: color),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -665,9 +927,9 @@ class _ExamPeriodBanner extends StatelessWidget {
                 children: [
                   Text(
                     context.strings.examPeriod,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: scheme.onTertiaryContainer,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(color: color),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -677,9 +939,9 @@ class _ExamPeriodBanner extends StatelessWidget {
                               '${compactDate(context, period.startDate)} - ${compactDate(context, period.endDate)}',
                         )
                         .join('\n'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onTertiaryContainer,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: scheme.onSurface),
                   ),
                 ],
               ),

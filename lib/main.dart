@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import 'domain/entities/app_language.dart';
+import 'domain/entities/app_theme_mode.dart';
 import 'presentation/providers/planner_providers.dart';
 import 'presentation/screens/planner_shell.dart';
 import 'presentation/widgets/app_update_dialog.dart';
+import 'services/analytics_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
+  await analyticsService.initialize();
   LicenseRegistry.addLicense(() async* {
     final license = await rootBundle.loadString('assets/google_fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(const ['Figtree'], license);
@@ -36,44 +40,80 @@ class MuniPlannerApp extends ConsumerWidget {
       AsyncData(:final value) => value.themeMode.themeMode,
       _ => ThemeMode.system,
     };
-    final platformBrightness = View.of(
-      context,
-    ).platformDispatcher.platformBrightness;
-    return M3ETheme(
-      data: M3EThemeData.light(seedColor: const Color(0xff005ca9)),
-      initialTheme: platformBrightness,
-      autoTheming: true,
-      child: MaterialApp(
-        title: 'MUstr',
-        debugShowCheckedModeBanner: false,
-        themeMode: themeMode,
-        locale: language.locale,
-        supportedLocales: AppLanguage.values.map((language) => language.locale),
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        builder: (context, child) => AppUpdateHost(child: child!),
-        theme: _theme(Brightness.light),
-        darkTheme: _theme(Brightness.dark),
-        home: const PlannerShell(),
-      ),
+    final colorTheme = switch (planner) {
+      AsyncData(:final value) => value.colorTheme,
+      _ => AppColorTheme.materialYou,
+    };
+    return _MaterialYouSeedBuilder(
+      builder: (materialYouSeed) {
+        final lightScheme = _schemeFor(
+          brightness: Brightness.light,
+          colorTheme: colorTheme,
+          materialYouSeed: materialYouSeed,
+        );
+        final darkScheme = _schemeFor(
+          brightness: Brightness.dark,
+          colorTheme: colorTheme,
+          materialYouSeed: materialYouSeed,
+        );
+        final brightness = switch (themeMode) {
+          ThemeMode.light => Brightness.light,
+          ThemeMode.dark => Brightness.dark,
+          _ => MediaQuery.platformBrightnessOf(context),
+        };
+        final expressiveSeed = _seedFor(colorTheme, materialYouSeed);
+        return M3ETheme(
+          data: themeMode == ThemeMode.system
+              ? M3EThemeData.light(seedColor: expressiveSeed)
+              : brightness == Brightness.dark
+              ? M3EThemeData.dark(seedColor: expressiveSeed)
+              : M3EThemeData.light(seedColor: expressiveSeed),
+          initialTheme: brightness,
+          autoTheming: themeMode == ThemeMode.system,
+          child: MaterialApp(
+            title: 'MUstr',
+            debugShowCheckedModeBanner: false,
+            themeMode: themeMode,
+            locale: language.locale,
+            supportedLocales: AppLanguage.values.map(
+              (language) => language.locale,
+            ),
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            builder: (context, child) => AppUpdateHost(child: child!),
+            theme: _theme(Brightness.light, lightScheme),
+            darkTheme: _theme(Brightness.dark, darkScheme),
+            home: const PlannerShell(),
+          ),
+        );
+      },
     );
   }
 
-  ThemeData _theme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xff005ca9),
+  ColorScheme _schemeFor({
+    required Brightness brightness,
+    required AppColorTheme colorTheme,
+    required Color? materialYouSeed,
+  }) {
+    return ColorScheme.fromSeed(
+      seedColor: _seedFor(colorTheme, materialYouSeed),
       brightness: brightness,
       dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
     );
+  }
+
+  Color _seedFor(AppColorTheme colorTheme, Color? materialYouSeed) =>
+      colorTheme == AppColorTheme.materialYou
+      ? materialYouSeed ?? const Color(0xff005ca9)
+      : colorTheme.seedColor!;
+
+  ThemeData _theme(Brightness brightness, ColorScheme scheme) {
     final baseText = GoogleFonts.figtreeTextTheme(
       ThemeData(brightness: brightness).textTheme,
     );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: isDark
-          ? const Color(0xff0d1720)
-          : const Color(0xfff6f7f9),
+      scaffoldBackgroundColor: scheme.surface,
       textTheme: baseText.copyWith(
         displaySmall: baseText.displaySmall?.copyWith(
           fontWeight: FontWeight.w700,
@@ -101,9 +141,7 @@ class MuniPlannerApp extends ConsumerWidget {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: isDark
-            ? const Color(0xff0d1720)
-            : const Color(0xfff6f7f9),
+        backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -111,15 +149,15 @@ class MuniPlannerApp extends ConsumerWidget {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: isDark ? const Color(0xff15222e) : Colors.white,
+        color: scheme.surfaceContainerLow,
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        shadowColor: const Color(0xff005ca9).withValues(alpha: 0.10),
+        shadowColor: scheme.primary.withValues(alpha: 0.10),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xff15222e) : Colors.white,
+        fillColor: scheme.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
@@ -139,8 +177,8 @@ class MuniPlannerApp extends ConsumerWidget {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xff005ca9),
-          foregroundColor: Colors.white,
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
           minimumSize: const Size(48, 52),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -156,7 +194,7 @@ class MuniPlannerApp extends ConsumerWidget {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 72,
-        backgroundColor: isDark ? const Color(0xff101c27) : Colors.white,
+        backgroundColor: scheme.surfaceContainer,
         indicatorColor: scheme.primaryContainer,
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
@@ -177,4 +215,50 @@ class MuniPlannerApp extends ConsumerWidget {
       dividerTheme: DividerThemeData(color: scheme.outlineVariant, space: 1),
     );
   }
+}
+
+class _MaterialYouSeedBuilder extends StatefulWidget {
+  const _MaterialYouSeedBuilder({required this.builder});
+
+  final Widget Function(Color? materialYouSeed) builder;
+
+  @override
+  State<_MaterialYouSeedBuilder> createState() =>
+      _MaterialYouSeedBuilderState();
+}
+
+class _MaterialYouSeedBuilderState extends State<_MaterialYouSeedBuilder>
+    with WidgetsBindingObserver {
+  Color? _seed;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadSeed();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadSeed();
+  }
+
+  Future<void> _loadSeed() async {
+    try {
+      final palette = await DynamicColorPlugin.getCorePalette();
+      if (palette == null || !mounted) return;
+      setState(() => _seed = Color(palette.primary.get(40)));
+    } on PlatformException {
+      // Material You is unavailable on this platform or Android version.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_seed);
 }

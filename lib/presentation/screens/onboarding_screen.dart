@@ -19,6 +19,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
   final _selectedFacultyIds = <String>{};
+  var _analyticsConsent = false;
   int _page = 0;
 
   @override
@@ -51,6 +52,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     _FacultyPage(
                       selectedFacultyIds: _selectedFacultyIds,
                       onChanged: _toggleFaculty,
+                    ),
+                    _AnalyticsPage(
+                      analyticsConsent: _analyticsConsent,
+                      onAnalyticsConsentChanged: (value) =>
+                          setState(() => _analyticsConsent = value),
                     ),
                   ],
                 ),
@@ -109,16 +115,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   );
 
   Future<void> _next() async {
-    if (_page < 1) {
+    if (_page < 2) {
       await _pageController.nextPage(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
       return;
     }
-    await ref
-        .read(plannerProvider.notifier)
-        .saveFacultyMemberships(_selectedFacultyIds.toList());
+    final controller = ref.read(plannerProvider.notifier);
+    await controller.saveAnalyticsConsent(_analyticsConsent);
+    await controller.saveFacultyMemberships(_selectedFacultyIds.toList());
   }
 }
 
@@ -130,11 +136,11 @@ class _ProgressIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: List.generate(
-      2,
+      3,
       (index) => Expanded(
         child: Container(
           height: 4,
-          margin: EdgeInsets.only(right: index == 1 ? 0 : 8),
+          margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
           decoration: BoxDecoration(
             color: index <= currentPage
                 ? const Color(0xff005ca9)
@@ -190,6 +196,7 @@ class _WelcomePage extends StatelessWidget {
         const SizedBox(height: 32),
         DropdownButtonFormField<AppLanguage>(
           initialValue: language,
+          menuMaxHeight: 320,
           decoration: InputDecoration(
             labelText: strings.language,
             prefixIcon: const Icon(Icons.translate_rounded),
@@ -268,6 +275,58 @@ class _FacultyPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AnalyticsPage extends StatelessWidget {
+  const _AnalyticsPage({
+    required this.analyticsConsent,
+    required this.onAnalyticsConsentChanged,
+  });
+
+  final bool analyticsConsent;
+  final ValueChanged<bool> onAnalyticsConsentChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.insights_outlined, size: 40, color: scheme.primary),
+          const SizedBox(height: 20),
+          Text(
+            strings.analyticsConsent,
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            strings.analyticsConsentDescription,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 24),
+          Material(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(8),
+            child: CheckboxListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              value: analyticsConsent,
+              onChanged: (value) => onAnalyticsConsentChanged(value ?? false),
+              title: Text(strings.analyticsConsent),
+              subtitle: Text(strings.analyticsConsentSubtitle),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

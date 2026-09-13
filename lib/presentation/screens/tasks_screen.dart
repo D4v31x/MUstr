@@ -88,6 +88,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 Expanded(
                   child: DropdownButtonFormField<TaskPriority?>(
                     initialValue: _priority,
+                    menuMaxHeight: 320,
                     decoration: InputDecoration(
                       labelText: strings.priority,
                       isDense: true,
@@ -111,6 +112,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     initialValue: _subjectId,
+                    menuMaxHeight: 320,
                     decoration: InputDecoration(
                       labelText: strings.subject,
                       isDense: true,

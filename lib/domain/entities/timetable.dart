@@ -6,16 +6,43 @@ class LessonStyleSettings {
   const LessonStyleSettings({
     this.lectureColorValue = 0xff2563eb,
     this.seminarColorValue = 0xffd04a02,
+    this.examColorValue = 0xffba1a1a,
+    this.importantDateColorValue = 0xff6750a4,
+    this.examPeriodColorValue = 0xff006c65,
+    this.subjectColorValues = const {},
   });
 
   final int lectureColorValue;
   final int seminarColorValue;
+  final int examColorValue;
+  final int importantDateColorValue;
+  final int examPeriodColorValue;
+  final Map<String, int> subjectColorValues;
 
   int? colorFor(LessonKind kind) => switch (kind) {
     LessonKind.lecture => lectureColorValue,
     LessonKind.seminar => seminarColorValue,
     LessonKind.event => null,
   };
+
+  int? colorForSubject(String subjectId) => subjectColorValues[subjectId];
+
+  LessonStyleSettings copyWith({
+    int? lectureColorValue,
+    int? seminarColorValue,
+    int? examColorValue,
+    int? importantDateColorValue,
+    int? examPeriodColorValue,
+    Map<String, int>? subjectColorValues,
+  }) => LessonStyleSettings(
+    lectureColorValue: lectureColorValue ?? this.lectureColorValue,
+    seminarColorValue: seminarColorValue ?? this.seminarColorValue,
+    examColorValue: examColorValue ?? this.examColorValue,
+    importantDateColorValue:
+        importantDateColorValue ?? this.importantDateColorValue,
+    examPeriodColorValue: examPeriodColorValue ?? this.examPeriodColorValue,
+    subjectColorValues: subjectColorValues ?? this.subjectColorValues,
+  );
 }
 
 class Teacher {
@@ -51,6 +78,7 @@ class Lesson {
     required this.semester,
     required this.rooms,
     required this.teachers,
+    this.reminderAt,
   });
 
   final String id;
@@ -70,6 +98,7 @@ class Lesson {
   final String? semester;
   final List<Room> rooms;
   final List<Teacher> teachers;
+  final DateTime? reminderAt;
 
   Duration get duration => endTime.difference(startTime);
   bool get isMandatory => kind == LessonKind.seminar;
@@ -83,6 +112,8 @@ class Lesson {
     LessonPriority? priority,
     int? customColorValue,
     bool clearCustomColor = false,
+    DateTime? reminderAt,
+    bool clearReminder = false,
   }) => Lesson(
     id: id,
     date: date,
@@ -103,6 +134,7 @@ class Lesson {
     semester: semester,
     rooms: rooms,
     teachers: teachers,
+    reminderAt: clearReminder ? null : reminderAt ?? this.reminderAt,
   );
 }
 

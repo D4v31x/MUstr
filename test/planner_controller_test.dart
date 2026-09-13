@@ -53,14 +53,27 @@ void main() {
 
       await controller.saveLanguage(AppLanguage.czech);
       expect(repository.data.language, AppLanguage.czech);
+      await controller.saveColorTheme(AppColorTheme.emerald);
+      expect(repository.data.colorTheme, AppColorTheme.emerald);
+      await controller.saveAnalyticsConsent(true);
+      expect(repository.data.analyticsConsent, isTrue);
       await controller.saveLessonStyle(
         const LessonStyleSettings(
           lectureColorValue: 0xff0f766e,
           seminarColorValue: 0xffbe123c,
+          examColorValue: 0xff7e22ce,
+          importantDateColorValue: 0xff2563eb,
+          examPeriodColorValue: 0xffc2410c,
+          subjectColorValues: {'1726907': 0xff0f766e},
         ),
       );
       expect(repository.data.lessonStyle.lectureColorValue, 0xff0f766e);
       expect(repository.data.lessonStyle.seminarColorValue, 0xffbe123c);
+      expect(repository.data.lessonStyle.examColorValue, 0xff7e22ce);
+      expect(
+        repository.data.lessonStyle.colorForSubject('1726907'),
+        0xff0f766e,
+      );
 
       final exam = controller.newExam(
         title: 'Programming final',
@@ -169,6 +182,7 @@ void main() {
 
   test('manual seminar is added to the selected timetable', () async {
     final repository = _FakeRepository();
+    final scheduler = _FakeScheduler();
     final timetable = Timetable(
       id: 'fall-2026-fi',
       name: 'Fall 2026',
@@ -182,7 +196,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         plannerRepositoryProvider.overrideWithValue(repository),
-        reminderSchedulerProvider.overrideWithValue(_FakeScheduler()),
+        reminderSchedulerProvider.overrideWithValue(scheduler),
       ],
     );
     addTearDown(container.dispose);
@@ -211,6 +225,18 @@ void main() {
     expect(lesson.teachers.single.name, 'Ada Lovelace');
     expect(result.timetable!.lessons.single.id, lesson.id);
     expect(result.subjects.single.courseCode, 'PB151');
+
+    final reminderAt = DateTime(2026, 9, 21, 9, 45);
+    await container
+        .read(plannerProvider.notifier)
+        .saveLessonPresentation(
+          lesson.copyWithPresentation(reminderAt: reminderAt),
+        );
+    expect(
+      repository.data.timetables.single.lessons.single.reminderAt,
+      reminderAt,
+    );
+    expect(scheduler.lessonReminders.single.id, lesson.id);
   });
 
   test('manual class can reuse an existing subject', () async {
@@ -498,6 +524,10 @@ class _FakeRepository implements PlannerRepository {
       data = _copy(themeMode: mode);
 
   @override
+  Future<void> saveColorTheme(AppColorTheme theme) async =>
+      data = _copy(colorTheme: theme);
+
+  @override
   Future<void> saveRemindersEnabled(bool enabled) async =>
       data = _copy(remindersEnabled: enabled);
 
@@ -510,13 +540,35 @@ class _FakeRepository implements PlannerRepository {
       data = _copy(highlightCurrentDay: enabled);
 
   @override
+  Future<void> saveAnalyticsConsent(bool enabled) async =>
+      data = _copy(analyticsConsent: enabled);
+
+  @override
   Future<void> saveLessonStyle(LessonStyleSettings style) async {
     await lessonStyleSaveCompleter?.future;
     data = _copy(lessonStyle: style);
   }
 
   @override
-  Future<void> saveLessonPresentation(Lesson lesson) async {}
+  Future<void> saveLessonPresentation(Lesson lesson) async {
+    data = data.withTimetables(
+      data.timetables
+          .map(
+            (timetable) => Timetable(
+              id: timetable.id,
+              name: timetable.name,
+              assignedFacultyId: timetable.assignedFacultyId,
+              semester: timetable.semester,
+              importedAt: timetable.importedAt,
+              lessons: timetable.lessons
+                  .map((item) => item.id == lesson.id ? lesson : item)
+                  .toList(),
+              subjects: timetable.subjects,
+            ),
+          )
+          .toList(),
+    );
+  }
 
   @override
   Future<void> saveExam(Exam exam) async => data = _copy(
@@ -602,9 +654,11 @@ class _FakeRepository implements PlannerRepository {
     List<ImportantDate>? importantDates,
     LessonStyleSettings? lessonStyle,
     AppThemeMode? themeMode,
+    AppColorTheme? colorTheme,
     bool? remindersEnabled,
     bool? showRoomInSchedule,
     bool? highlightCurrentDay,
+    bool? analyticsConsent,
   }) => PlannerData(
     timetable: data.timetable,
     timetables: data.timetables,
@@ -617,9 +671,11 @@ class _FakeRepository implements PlannerRepository {
     importantDates: importantDates ?? data.importantDates,
     lessonStyle: lessonStyle ?? data.lessonStyle,
     themeMode: themeMode ?? data.themeMode,
+    colorTheme: colorTheme ?? data.colorTheme,
     remindersEnabled: remindersEnabled ?? data.remindersEnabled,
     showRoomInSchedule: showRoomInSchedule ?? data.showRoomInSchedule,
     highlightCurrentDay: highlightCurrentDay ?? data.highlightCurrentDay,
+    analyticsConsent: analyticsConsent ?? data.analyticsConsent,
   );
 
   String _lessonSignature(Lesson lesson) => [
@@ -635,6 +691,8 @@ class _FakeScheduler implements ReminderScheduler {
   final cancelled = <String>[];
   final importantDates = <ImportantDate>[];
   final cancelledImportantDates = <String>[];
+  final lessonReminders = <Lesson>[];
+  final cancelledLessonReminders = <String>[];
 
   @override
   Future<void> cancel(String taskId) async => cancelled.add(taskId);
@@ -652,4 +710,12 @@ class _FakeScheduler implements ReminderScheduler {
   @override
   Future<void> cancelImportantDate(String importantDateId) async =>
       cancelledImportantDates.add(importantDateId);
+
+  @override
+  Future<void> scheduleLesson(Lesson lesson) async =>
+      lessonReminders.add(lesson);
+
+  @override
+  Future<void> cancelLesson(String lessonId) async =>
+      cancelledLessonReminders.add(lessonId);
 }

@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as timezone;
 
 import '../domain/entities/planner_task.dart';
 import '../domain/entities/important_date.dart';
+import '../domain/entities/timetable.dart';
 
 abstract interface class ReminderScheduler {
   Future<void> initialize();
@@ -12,6 +13,8 @@ abstract interface class ReminderScheduler {
   Future<void> cancel(String taskId);
   Future<void> scheduleImportantDate(ImportantDate importantDate);
   Future<void> cancelImportantDate(String importantDateId);
+  Future<void> scheduleLesson(Lesson lesson);
+  Future<void> cancelLesson(String lessonId);
 }
 
 class LocalReminderScheduler implements ReminderScheduler {
@@ -104,6 +107,40 @@ class LocalReminderScheduler implements ReminderScheduler {
   @override
   Future<void> cancelImportantDate(String importantDateId) =>
       _notifications.cancel(id: _idFor('important-date:$importantDateId'));
+
+  @override
+  Future<void> scheduleLesson(Lesson lesson) async {
+    await cancelLesson(lesson.id);
+    final reminder = lesson.reminderAt;
+    if (reminder == null || !reminder.isAfter(DateTime.now())) return;
+    final android = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    await android?.requestNotificationsPermission();
+    await _notifications.zonedSchedule(
+      id: _idFor('lesson:${lesson.id}'),
+      title: 'Class reminder',
+      body: '${lesson.courseCode}: ${lesson.courseName}',
+      scheduledDate: timezone.TZDateTime.from(reminder, timezone.local),
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'class_reminders',
+          'Class reminders',
+          channelDescription: 'Reminders for upcoming classes and seminars.',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: lesson.id,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  @override
+  Future<void> cancelLesson(String lessonId) =>
+      _notifications.cancel(id: _idFor('lesson:$lessonId'));
 
   int _idFor(String taskId) => taskId.hashCode & 0x7fffffff;
 

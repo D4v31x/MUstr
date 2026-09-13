@@ -130,7 +130,7 @@ packages:
     source: hosted
     version: "0.7.15"
   dynamic_color:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: dynamic_color
       sha256: "869b3bce0100eb519768ecd71c0111f0b5ea679f5f62e1f59c49d80067e730c5"
@@ -621,6 +621,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.5.2"
+  posthog_flutter:
+    dependency: "direct main"
+    description:
+      name: posthog_flutter
+      sha256: "4b303a3badc1fc8eaaa2a7c83edbb361f9362ed9cc371b7d4938f1635bd66c68"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.41.0"
   pub_semver:
     dependency: transitive
     description:

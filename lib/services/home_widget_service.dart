@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart' show ColorScheme;
+import 'package:flutter/material.dart' show Color, ColorScheme;
 import 'package:home_widget/home_widget.dart';
 
 import '../data/repositories/planner_repository.dart';
+import '../domain/entities/exam.dart';
+import '../domain/entities/important_date.dart';
 import '../domain/entities/timetable.dart';
 import '../presentation/widgets/planner_formatters.dart' show lessonColor;
 
@@ -16,7 +18,14 @@ const _currentLabelKey = 'schedule_label_current';
 const _nextLabelKey = 'schedule_label_next';
 const _availableTimetablesKey = 'available_timetables';
 const _appLanguageKey = 'app_language';
-const _maxLessonsPerWeek = 40;
+const _maxScheduleItemsPerWeek = 40;
+const _examLabels = {'en': 'Exam', 'cs': 'Zkouška', 'sk': 'Skúška'};
+const _importantDateLabels = {
+  'en': 'Important date',
+  'cs': 'Důležité datum',
+  'sk': 'Dôležitý dátum',
+};
+const _allDayLabels = {'en': 'All day', 'cs': 'Celý den', 'sk': 'Celý deň'};
 const _weekdayNamesByLanguage = {
   'en': [
     'Monday',
@@ -39,7 +48,7 @@ const _weekdayNamesByLanguage = {
   ],
 };
 
-/// Pushes this week's and next week's classes to the home screen widget,
+/// Pushes this week's and next week's schedule to the home screen widget,
 /// which can then page between them locally without relaunching Flutter.
 /// Widgets are a best-effort feature, so any failure here (e.g. no widget
 /// support on the current platform/build) is swallowed rather than surfaced.
@@ -47,15 +56,15 @@ Future<void> updateScheduleWidget(PlannerData data) async {
   try {
     final now = DateTime.now();
     final currentWeekStart = _mondayFor(now);
-    final nextWeekStart = currentWeekStart.add(const Duration(days: 7));
+    final nextWeekStart = _addCalendarDays(currentWeekStart, 7);
 
     await HomeWidget.saveWidgetData<String>(
       _currentLinesKey,
-      _weekLessonLines(data, currentWeekStart, now: now).join('\n'),
+      _weekScheduleLines(data, currentWeekStart, now: now).join('\n'),
     );
     await HomeWidget.saveWidgetData<String>(
       _nextLinesKey,
-      _weekLessonLines(data, nextWeekStart, now: now).join('\n'),
+      _weekScheduleLines(data, nextWeekStart, now: now).join('\n'),
     );
     await HomeWidget.saveWidgetData<String>(
       _currentLabelKey,
@@ -85,48 +94,52 @@ Future<void> updateScheduleWidget(PlannerData data) async {
 }
 
 DateTime _mondayFor(DateTime value) {
-  final dateOnly = DateTime(value.year, value.month, value.day);
-  return dateOnly.subtract(Duration(days: dateOnly.weekday - 1));
+  return DateTime(value.year, value.month, value.day - value.weekday + 1);
 }
+
+DateTime _addCalendarDays(DateTime value, int days) =>
+    DateTime(value.year, value.month, value.day + days);
 
 String _dateLabel(DateTime value) => '${value.day}.${value.month}.';
 
 String _weekRangeLabel(DateTime weekStart) {
-  final weekEnd = weekStart.add(const Duration(days: 6));
+  final weekEnd = _addCalendarDays(weekStart, 6);
   return '${_dateLabel(weekStart)} - ${_dateLabel(weekEnd)}';
 }
 
-/// Lines for the (Mon-Sun) week starting at [weekStart], one per lesson
-/// across all imported timetables (each tagged with its timetable id so the
-/// widget can filter by the user's per-widget selection). For the week
-/// containing [now], lessons that already ended are skipped.
-List<String> _weekLessonLines(
+/// Lines for the (Mon-Sun) week starting at [weekStart], including classes,
+/// exams, and important dates. Lesson rows are tagged with their timetable id
+/// so the widget can filter those rows by its per-widget selection.
+List<String> _weekScheduleLines(
   PlannerData data,
   DateTime weekStart, {
   required DateTime now,
 }) {
-  final weekEnd = weekStart.add(const Duration(days: 7));
-  final upcoming =
-      [
-            for (final timetable in data.timetables)
-              for (final lesson in timetable.lessons) (timetable.id, lesson),
-          ]
-          .where(
-            (entry) =>
-                entry.$2.endTime.isAfter(now) &&
-                !entry.$2.startTime.isBefore(weekStart) &&
-                entry.$2.startTime.isBefore(weekEnd),
-          )
-          .toList()
-        ..sort(
-          (first, second) => first.$2.startTime.compareTo(second.$2.startTime),
-        );
+  final weekEnd = _addCalendarDays(weekStart, 7);
+  final upcoming = <_WidgetScheduleItem>[
+    for (final timetable in data.timetables)
+      for (final lesson in timetable.lessons)
+        if (lesson.endTime.isAfter(now) &&
+            !lesson.startTime.isBefore(weekStart) &&
+            lesson.startTime.isBefore(weekEnd))
+          _WidgetScheduleItem.lesson(lesson, timetable.id),
+    for (final exam in data.exams)
+      if (exam.scheduledAt.isAfter(now) &&
+          !exam.scheduledAt.isBefore(weekStart) &&
+          exam.scheduledAt.isBefore(weekEnd))
+        _WidgetScheduleItem.exam(exam),
+    for (final importantDate in data.importantDates)
+      if (!importantDate.date.isBefore(weekStart) &&
+          importantDate.date.isBefore(weekEnd) &&
+          (importantDate.timeMinute == null ||
+              importantDate.scheduledAt.isAfter(now)))
+        _WidgetScheduleItem.importantDate(importantDate),
+  ]..sort((first, second) => first.start.compareTo(second.start));
   return upcoming
-      .take(_maxLessonsPerWeek)
+      .take(_maxScheduleItemsPerWeek)
       .map(
-        (entry) => _formatLesson(
-          entry.$2,
-          entry.$1,
+        (item) => _formatScheduleItem(
+          item,
           now,
           data.lessonStyle,
           data.language.code,
@@ -135,35 +148,101 @@ List<String> _weekLessonLines(
       .toList();
 }
 
-/// Encodes a lesson as `day|dateLabel|startTime|endTime|courseName|room|
-/// colorHex|timetableId|isToday`.
-String _formatLesson(
-  Lesson lesson,
-  String timetableId,
+/// Encodes an item as `day|dateLabel|startTime|endTime|title|location|
+/// colorHex|timetableId|isToday|kind`.
+String _formatScheduleItem(
+  _WidgetScheduleItem item,
   DateTime now,
   LessonStyleSettings lessonStyle,
   String languageCode,
 ) {
   final weekdayNames =
       _weekdayNamesByLanguage[languageCode] ?? _weekdayNamesByLanguage['en']!;
-  final day = weekdayNames[lesson.startTime.weekday - 1];
-  final dateLabel = _dateLabel(lesson.startTime);
-  final startTime = _timeLabel(lesson.startTime);
-  final endTime = _timeLabel(lesson.endTime);
-  final room = lesson.rooms.isEmpty ? '' : lesson.rooms.first.name;
+  final day = weekdayNames[item.start.weekday - 1];
+  final dateLabel = _dateLabel(item.start);
+  final startTime = item.isAllDay
+      ? _allDayLabels[languageCode] ?? _allDayLabels['en']!
+      : _timeLabel(item.start);
+  final endTime = item.isAllDay ? '' : _timeLabel(item.end);
   final isToday =
-      lesson.startTime.year == now.year &&
-      lesson.startTime.month == now.month &&
-      lesson.startTime.day == now.day;
-  final course = lesson.courseName.replaceAll('|', '/');
-  final safeRoom = room.replaceAll('|', '/');
-  final colorHex = lessonColor(
-    _placeholderScheme,
-    lesson,
-    lessonStyle,
-  ).toARGB32().toRadixString(16).padLeft(8, '0');
-  final safeTimetableId = timetableId.replaceAll('|', '/');
-  return '$day|$dateLabel|$startTime|$endTime|$course|$safeRoom|$colorHex|$safeTimetableId|${isToday ? 1 : 0}';
+      item.start.year == now.year &&
+      item.start.month == now.month &&
+      item.start.day == now.day;
+  final label = switch (item.kind) {
+    'exam' => _examLabels[languageCode] ?? _examLabels['en']!,
+    'important-date' =>
+      _importantDateLabels[languageCode] ?? _importantDateLabels['en']!,
+    _ => null,
+  };
+  final safeTitle = (label == null ? item.title : '$label: ${item.title}')
+      .replaceAll('|', '/');
+  final safeLocation = item.location.replaceAll('|', '/');
+  final safeTimetableId = item.timetableId.replaceAll('|', '/');
+  return '$day|$dateLabel|$startTime|$endTime|$safeTitle|$safeLocation|${item.colorHex(lessonStyle)}|$safeTimetableId|${isToday ? 1 : 0}|${item.kind}';
+}
+
+class _WidgetScheduleItem {
+  const _WidgetScheduleItem._({
+    required this.start,
+    required this.end,
+    required this.title,
+    required this.location,
+    required this.timetableId,
+    required this.kind,
+    required this.isAllDay,
+    this.lesson,
+  });
+
+  factory _WidgetScheduleItem.lesson(Lesson lesson, String timetableId) =>
+      _WidgetScheduleItem._(
+        start: lesson.startTime,
+        end: lesson.endTime,
+        title: lesson.courseName,
+        location: lesson.rooms.isEmpty ? '' : lesson.rooms.first.name,
+        timetableId: timetableId,
+        kind: 'lesson',
+        isAllDay: false,
+        lesson: lesson,
+      );
+
+  factory _WidgetScheduleItem.exam(Exam exam) => _WidgetScheduleItem._(
+    start: exam.scheduledAt,
+    end: exam.scheduledAt.add(const Duration(hours: 2)),
+    title: exam.title,
+    location: exam.location,
+    timetableId: '',
+    kind: 'exam',
+    isAllDay: false,
+  );
+
+  factory _WidgetScheduleItem.importantDate(ImportantDate importantDate) =>
+      _WidgetScheduleItem._(
+        start: importantDate.scheduledAt,
+        end: importantDate.scheduledAt,
+        title: importantDate.title,
+        location: '',
+        timetableId: '',
+        kind: 'important-date',
+        isAllDay: importantDate.timeMinute == null,
+      );
+
+  final DateTime start;
+  final DateTime end;
+  final String title;
+  final String location;
+  final String timetableId;
+  final String kind;
+  final bool isAllDay;
+  final Lesson? lesson;
+
+  String colorHex(LessonStyleSettings lessonStyle) {
+    final color = switch (kind) {
+      'exam' => Color(lessonStyle.examColorValue),
+      'important-date' => Color(lessonStyle.importantDateColorValue),
+      _ => lessonColor(_placeholderScheme, lesson!, lessonStyle),
+    };
+    return color.toARGB32().toRadixString(16).padLeft(8, '0');
+  }
 }
 
 String _timeLabel(DateTime value) {

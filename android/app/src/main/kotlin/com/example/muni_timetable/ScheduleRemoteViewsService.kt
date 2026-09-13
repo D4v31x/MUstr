@@ -21,7 +21,7 @@ class ScheduleRemoteViewsService : RemoteViewsService() {
 private sealed class ScheduleListItem {
     data class DayHeader(val label: String) : ScheduleListItem()
 
-    data class LessonRow(
+    data class ScheduleRow(
         val timeRange: String,
         val course: String,
         val room: String,
@@ -67,7 +67,7 @@ private class ScheduleRemoteViewsFactory(
             RemoteViews(context.packageName, R.layout.widget_day_header).apply {
                 setTextViewText(R.id.item_day_header, item.label)
             }
-        is ScheduleListItem.LessonRow ->
+        is ScheduleListItem.ScheduleRow ->
             RemoteViews(context.packageName, R.layout.widget_lesson_row).apply {
                 setTextViewText(R.id.item_time, item.timeRange)
                 setTextViewText(R.id.item_course, item.course)
@@ -143,7 +143,8 @@ private fun buildItems(context: Context, appWidgetId: Int): List<ScheduleListIte
         val colorHex = fields[6]
         val timetableId = fields[7]
         val isToday = fields[8]
-        val passesFilter = selectedTimetables == null || selectedTimetables.contains(timetableId)
+        val kind = fields[9]
+        val passesFilter = kind != "lesson" || selectedTimetables == null || selectedTimetables.contains(timetableId)
         if (!passesFilter) return@forEach
         val dayKey = "$day|$dateLabel"
         if (dayKey != lastDayKey) {
@@ -151,8 +152,8 @@ private fun buildItems(context: Context, appWidgetId: Int): List<ScheduleListIte
             lastDayKey = dayKey
         }
         result.add(
-            ScheduleListItem.LessonRow(
-                timeRange = "$startTime\u2013$endTime",
+            ScheduleListItem.ScheduleRow(
+                timeRange = if (endTime.isBlank()) startTime else "$startTime\u2013$endTime",
                 course = course,
                 room = room,
                 color = parseLessonColor(colorHex),

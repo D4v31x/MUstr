@@ -109,6 +109,7 @@ class _LessonEditorState extends ConsumerState<_LessonEditor> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _timetableId,
+                menuMaxHeight: 320,
                 decoration: InputDecoration(labelText: strings.targetTimetable),
                 items: widget.data.timetables
                     .map(
@@ -130,6 +131,7 @@ class _LessonEditorState extends ConsumerState<_LessonEditor> {
               DropdownButtonFormField<String>(
                 key: ValueKey(_timetableId),
                 initialValue: _subjectChoice,
+                menuMaxHeight: 320,
                 decoration: InputDecoration(labelText: strings.subject),
                 items: [
                   DropdownMenuItem(

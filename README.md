@@ -68,7 +68,9 @@ Add the MUstr widget from your Android launcher’s widget picker, then choose t
 
 ## Privacy
 
-Your imported schedules, tasks, notes, exams, and important dates are stored locally on your device. MUstr uses the internet only when you choose to check for or download an app update. It does not require a MUNI account password and does not upload your schedule to a MUstr server.
+Your imported schedules, tasks, notes, exams, and important dates are stored locally on your device. MUstr uses the internet when you choose to check for or download an app update.
+
+Analytics are off by default. When you explicitly opt in during onboarding or in Settings, MUstr creates a random app-install ID and sends it, your selected faculty IDs, and anonymous usage data to PostHog. You can withdraw consent in Settings at any time; MUstr then disables collection and clears the local PostHog identity. MUstr does not require a MUNI account password and does not upload your schedule to a MUstr server.
 
 ## Support and Feedback
 

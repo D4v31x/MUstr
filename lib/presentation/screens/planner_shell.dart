@@ -108,8 +108,7 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
   Widget build(BuildContext context) {
     final planner = ref.watch(plannerProvider);
     return planner.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const _LaunchScreen(),
       error: (error, _) => _ImportView(
         error: error.toString(),
         onImport: _importFile,
@@ -794,6 +793,116 @@ class _FacultyFilterOption extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LaunchScreen extends StatelessWidget {
+  const _LaunchScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _TimetableGridPainter(
+                  lineColor: scheme.outlineVariant.withValues(alpha: 0.28),
+                  accentColor: scheme.primary.withValues(alpha: 0.09),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Semantics(
+                  label: 'Loading MUstr',
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'MUstr',
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(
+                              fontFamily: 'MuniBold',
+                              color: scheme.primary,
+                              letterSpacing: 0,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'YOUR WEEK, IN VIEW',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.4,
+                            ),
+                      ),
+                      const SizedBox(height: 36),
+                      SizedBox(
+                        width: 144,
+                        child: M3EProgressIndicator.linearWavy(
+                          color: scheme.primary,
+                          trackColor: scheme.primaryContainer,
+                          linearSize: M3EProgressIndicatorSize.s,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimetableGridPainter extends CustomPainter {
+  const _TimetableGridPainter({
+    required this.lineColor,
+    required this.accentColor,
+  });
+
+  final Color lineColor;
+  final Color accentColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1;
+    final accentPaint = Paint()..color = accentColor;
+    const cellWidth = 56.0;
+    const cellHeight = 48.0;
+    for (var x = 0.0; x <= size.width; x += cellWidth) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), linePaint);
+    }
+    for (var y = 0.0; y <= size.height; y += cellHeight) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
+    }
+    for (var row = 2; row < (size.height / cellHeight).floor(); row += 4) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          cellWidth,
+          row * cellHeight + 6,
+          cellWidth * 4,
+          cellHeight - 12,
+        ),
+        accentPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TimetableGridPainter oldDelegate) =>
+      lineColor != oldDelegate.lineColor ||
+      accentColor != oldDelegate.accentColor;
 }
 
 class _ImportView extends StatelessWidget {

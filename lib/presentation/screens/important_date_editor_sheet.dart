@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
+import '../../domain/entities/important_date.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
 import '../widgets/faculty_badge.dart';
@@ -10,17 +11,25 @@ import '../widgets/planner_formatters.dart';
 Future<void> showImportantDateEditor(
   BuildContext context, {
   required PlannerData data,
+  ImportantDate? initialImportantDate,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
-  builder: (_) => _ImportantDateEditor(data: data),
+  builder: (_) => _ImportantDateEditor(
+    data: data,
+    initialImportantDate: initialImportantDate,
+  ),
 );
 
 class _ImportantDateEditor extends ConsumerStatefulWidget {
-  const _ImportantDateEditor({required this.data});
+  const _ImportantDateEditor({
+    required this.data,
+    required this.initialImportantDate,
+  });
 
   final PlannerData data;
+  final ImportantDate? initialImportantDate;
 
   @override
   ConsumerState<_ImportantDateEditor> createState() =>
@@ -29,14 +38,23 @@ class _ImportantDateEditor extends ConsumerStatefulWidget {
 
 class _ImportantDateEditorState extends ConsumerState<_ImportantDateEditor> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  DateTime _date = DateTime.now();
-  var _hasTime = false;
-  var _time = const TimeOfDay(hour: 9, minute: 0);
-  var _hasReminder = false;
-  late DateTime _reminderDate = _date;
-  var _reminderTime = const TimeOfDay(hour: 9, minute: 0);
-  String? _facultyId;
+  late final _title = TextEditingController(
+    text: widget.initialImportantDate?.title,
+  );
+  late DateTime _date = widget.initialImportantDate?.date ?? DateTime.now();
+  late bool _hasTime = widget.initialImportantDate?.timeMinute != null;
+  late TimeOfDay _time = _timeOf(widget.initialImportantDate?.timeMinute);
+  late bool _hasReminder = widget.initialImportantDate?.reminderAt != null;
+  late DateTime _reminderDate =
+      widget.initialImportantDate?.reminderAt ?? _date;
+  late TimeOfDay _reminderTime = widget.initialImportantDate?.reminderAt == null
+      ? const TimeOfDay(hour: 9, minute: 0)
+      : TimeOfDay.fromDateTime(widget.initialImportantDate!.reminderAt!);
+  late String? _facultyId = widget.initialImportantDate?.facultyId;
+
+  TimeOfDay _timeOf(int? minute) => minute == null
+      ? const TimeOfDay(hour: 9, minute: 0)
+      : TimeOfDay(hour: minute ~/ 60, minute: minute % 60);
 
   @override
   void dispose() {
@@ -61,7 +79,9 @@ class _ImportantDateEditorState extends ConsumerState<_ImportantDateEditor> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                strings.addImportantDate,
+                widget.initialImportantDate == null
+                    ? strings.addImportantDate
+                    : strings.editImportantDate,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 16),
@@ -100,6 +120,7 @@ class _ImportantDateEditorState extends ConsumerState<_ImportantDateEditor> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 initialValue: _facultyId,
+                menuMaxHeight: 320,
                 decoration: InputDecoration(labelText: strings.faculty),
                 items: [
                   DropdownMenuItem(
@@ -202,23 +223,35 @@ class _ImportantDateEditorState extends ConsumerState<_ImportantDateEditor> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final importantDate = ref
-        .read(plannerProvider.notifier)
-        .newImportantDate(
-          title: _title.text.trim(),
-          date: _date,
-          timeMinute: _hasTime ? _time.hour * 60 + _time.minute : null,
-          reminderAt: _hasReminder
-              ? DateTime(
-                  _reminderDate.year,
-                  _reminderDate.month,
-                  _reminderDate.day,
-                  _reminderTime.hour,
-                  _reminderTime.minute,
-                )
-              : null,
-          facultyId: _facultyId,
-        );
+    final reminderAt = _hasReminder
+        ? DateTime(
+            _reminderDate.year,
+            _reminderDate.month,
+            _reminderDate.day,
+            _reminderTime.hour,
+            _reminderTime.minute,
+          )
+        : null;
+    final existing = widget.initialImportantDate;
+    final importantDate = existing == null
+        ? ref
+              .read(plannerProvider.notifier)
+              .newImportantDate(
+                title: _title.text.trim(),
+                date: _date,
+                timeMinute: _hasTime ? _time.hour * 60 + _time.minute : null,
+                reminderAt: reminderAt,
+                facultyId: _facultyId,
+              )
+        : ImportantDate(
+            id: existing.id,
+            title: _title.text.trim(),
+            date: DateTime(_date.year, _date.month, _date.day),
+            timeMinute: _hasTime ? _time.hour * 60 + _time.minute : null,
+            reminderAt: reminderAt,
+            facultyId: _facultyId,
+            createdAt: existing.createdAt,
+          );
     await ref.read(plannerProvider.notifier).saveImportantDate(importantDate);
     if (mounted) Navigator.pop(context);
   }

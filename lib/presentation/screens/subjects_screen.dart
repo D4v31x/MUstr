@@ -65,10 +65,13 @@ class SubjectsScreen extends StatelessWidget {
                 Text(
                   subject.courseCode,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: eventColor(
-                      Theme.of(context).colorScheme,
-                      subject.faculty,
-                      subject.id,
+                    color: Color(
+                      data.lessonStyle.colorForSubject(subject.id) ??
+                          eventColor(
+                            Theme.of(context).colorScheme,
+                            subject.faculty,
+                            subject.id,
+                          ).toARGB32(),
                     ),
                   ),
                 ),
