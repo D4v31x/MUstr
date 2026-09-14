@@ -75,6 +75,14 @@ Your imported schedules, tasks, notes, exams, and important dates are stored loc
 
 Analytics are off by default. When you explicitly opt in during onboarding or in Settings, MUstr creates a random app-install ID and sends it, your selected faculty IDs, and anonymous usage data to PostHog. You can withdraw consent in Settings at any time; MUstr then disables collection and clears the local PostHog identity. MUstr does not require a MUNI account password and does not upload your schedule to a MUstr server.
 
+## Screenshots
+
+<img width="1440" height="3120" alt="Screenshot_20260914_001246" src="https://github.com/user-attachments/assets/7d8eaad1-edb0-4b19-86ce-66158c58f2d2" />
+
+<img width="1440" height="3120" alt="Screenshot_20260914_001341" src="https://github.com/user-attachments/assets/e334491b-39bc-4af5-a0d6-bf89166544c0" />
+
+<img width="1440" height="3120" alt="Screenshot_20260914_001550" src="https://github.com/user-attachments/assets/bef78748-d9c0-4238-b253-bc0f94f0645f" />
+
 ## Support and Feedback
 
 - [Report a bug](https://github.com/D4v31x/MUstr/issues/new?labels=bug&title=Bug%3A%20)
