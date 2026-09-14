@@ -5,7 +5,7 @@
 <h1 align="center">MUstr</h1>
 
 <p align="center">
-	An offline schedule viewer and companion for MUNI students, made in Flutter.
+	An offline schedule viewer and companion for MUNI students, made in Flutter for Android.
 </p>
 
 <p align="center">
