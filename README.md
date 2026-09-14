@@ -22,15 +22,17 @@ MUstr turns an exported MUNI timetable into a clear, personal schedule you can u
 
 ## Features
 
-- **Today at a glance**: See current and upcoming classes, room details, and a chronological daily timeline.
-- **Weekly timetable**: Browse an interactive week view with lecture, seminar, and custom event colors.
-- **Semester overview**: Keep semester start/end dates, exam periods, exams, and important milestones in one place.
+- **Today at a glance**: See current and upcoming classes, room details, and a chronological daily timeline. Classes disappear automatically after they end.
+- **Weekly timetable**: Browse an interactive week view with lecture, seminar, exam, and important-date colors. Dense overlaps are grouped into an expandable stack.
+- **Semester overview**: Keep semester start/end dates, exam periods, exams, and important milestones in one place. Tap an item to view or edit its details.
 - **Important dates**: Add course registration, enrollment changes, tuition deadlines, holidays, or any other key date. Dates can have an optional time, faculty scope, and reminder.
 - **Tasks and courses**: Attach homework, notes, and reminders to imported subjects.
 - **Multiple faculties and schedules**: Import more than one timetable, filter by faculty, or merge an updated XML export into an existing schedule.
 - **Manual classes**: Add a lecture, seminar, or event that is missing from an XML export.
-- **Home-screen widget**: Keep your selected schedule visible from the Android home screen.
-- **Your language and appearance**: Available in English, Czech, and Slovak, with system, light, and dark themes.
+- **Class preferences and reminders**: Set a priority, a personal color, or a reminder for an individual class occurrence.
+- **Home-screen widget**: Keep your selected schedule visible from the Android home screen. It includes exams and important dates and automatically omits finished classes.
+- **Your language and appearance**: Available in English, Czech, and Slovak, with system, light, and dark modes. Use Material You colors from your device or choose a MUstr palette.
+- **Safer changes**: Confirm before deleting schedule data or saving edits to an existing item.
 - **In-app updates**: Check and install new Android releases from GitHub when available.
 
 ## Get MUstr
@@ -40,7 +42,7 @@ MUstr turns an exported MUNI timetable into a clear, personal schedule you can u
 3. Open the downloaded APK and allow installation from your browser or file manager when Android asks.
 4. Open MUstr and select your faculty or faculties.
 
-MUstr can also download future releases from its update prompt. Android will always ask for confirmation before installing an update.
+MUstr can also download future releases from the in-app **Check for updates** screen. Android will always ask for confirmation before installing an update.
 
 ## Import Your Schedule
 
@@ -59,12 +61,13 @@ Open the **Semester** tab to add the milestones around your schedule:
 - Add individual **exams**, with a subject, date, time, location, and notes.
 - Add **important dates** such as registration opening, enrollment deadlines, or holidays.
 - Choose an optional time and a reminder for each important date. Timed dates also appear in the Today timeline.
+- Tap an existing item to review its details or make an edit. MUstr asks for confirmation before applying an edit or deleting an item.
 
-Notifications require Android notification permission. MUstr only schedules reminders that you explicitly create and keeps them on the device.
+Notifications require Android notification permission. MUstr only schedules reminders that you explicitly create, including optional reminders for individual class occurrences, and keeps them on the device.
 
 ## Home-Screen Widget
 
-Add the MUstr widget from your Android launcher’s widget picker, then choose the timetable it should show. The widget groups classes by day and reflects the language and schedule data currently stored in MUstr.
+Add the MUstr widget from your Android launcher's widget picker, then choose the timetable it should show. The widget groups classes, exams, and important dates by day, reflects the language and schedule data currently stored in MUstr, and hides classes once they have ended.
 
 ## Privacy
 
