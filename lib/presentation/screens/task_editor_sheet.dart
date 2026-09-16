@@ -7,6 +7,7 @@ import '../providers/planner_providers.dart';
 import '../localization/app_strings.dart';
 import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/planner_formatters.dart';
+import '../widgets/subject_class_picker.dart';
 
 Future<void> showTaskEditor(
   BuildContext context, {
@@ -51,6 +52,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   int? _dueMinute;
   DateTime? _reminder;
   String? _subjectId;
+  Lesson? _selectedClass;
   late TaskPriority _priority;
   final _form = GlobalKey<FormState>();
 
@@ -126,17 +128,22 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                     ),
                   ),
                 ],
-                onChanged: (value) => setState(() => _subjectId = value),
+                onChanged: (value) => setState(() {
+                  _subjectId = value;
+                  _selectedClass = null;
+                }),
               ),
-              if (_nextClass != null) ...[
+              if (_subjectClasses.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
-                    onPressed: _useNextClassDueDate,
-                    icon: const Icon(Icons.event_available_outlined),
+                    onPressed: _pickSubjectClass,
+                    icon: const Icon(Icons.calendar_month_outlined),
                     label: Text(
-                      '${strings.dueOnNextClass}: ${compactDate(context, _nextClass!.startTime)} ${timeLabel(_nextClass!.startTime)}',
+                      _selectedClass == null
+                          ? strings.scheduleFromClass
+                          : '${strings.scheduleFromClass}: ${compactDate(context, _selectedClass!.startTime)} ${timeLabel(_selectedClass!.startTime)}',
                     ),
                   ),
                 ),
@@ -227,32 +234,26 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     );
   }
 
-  Lesson? get _nextClass {
+  List<Lesson> get _subjectClasses {
     final subjectId = _subjectId;
     if (subjectId == null) {
-      return null;
+      return const [];
     }
-    final lessons =
-        widget.lessons
-            .where(
-              (lesson) =>
-                  lesson.subjectKey == subjectId &&
-                  lesson.kind != LessonKind.event &&
-                  lesson.startTime.isAfter(DateTime.now()),
-            )
-            .toList()
-          ..sort(
-            (first, second) => first.startTime.compareTo(second.startTime),
-          );
-    return lessons.firstOrNull;
+    return widget.lessons
+        .where(
+          (lesson) =>
+              lesson.subjectKey == subjectId && lesson.kind != LessonKind.event,
+        )
+        .toList();
   }
 
-  void _useNextClassDueDate() {
-    final lesson = _nextClass;
+  Future<void> _pickSubjectClass() async {
+    final lesson = await pickSubjectClass(context, lessons: _subjectClasses);
     if (lesson == null) {
       return;
     }
     setState(() {
+      _selectedClass = lesson;
       _dueDate = DateTime(
         lesson.startTime.year,
         lesson.startTime.month,

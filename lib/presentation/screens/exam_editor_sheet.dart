@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
 import '../../domain/entities/exam.dart';
+import '../../domain/entities/timetable.dart';
 import '../providers/planner_providers.dart';
 import '../widgets/change_confirmation_dialog.dart';
 import '../widgets/faculty_badge.dart';
 import '../widgets/planner_formatters.dart';
+import '../widgets/subject_class_picker.dart';
 import '../localization/app_strings.dart';
 
 Future<void> showExamEditor(
@@ -66,6 +68,7 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
   late String _facultyId =
       widget.initialExam?.facultyId ?? widget.initialFacultyId;
   late String? _subjectId = widget.initialExam?.subjectId;
+  Lesson? _selectedClass;
   late DateTime _date = widget.initialExam?.scheduledAt ?? DateTime.now();
   late TimeOfDay _time = widget.initialExam == null
       ? const TimeOfDay(hour: 9, minute: 0)
@@ -132,6 +135,7 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
                 onChanged: (value) => setState(() {
                   _facultyId = value!;
                   _subjectId = null;
+                  _selectedClass = null;
                 }),
               ),
               const SizedBox(height: 12),
@@ -151,8 +155,26 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
                     ),
                   ),
                 ],
-                onChanged: (value) => setState(() => _subjectId = value),
+                onChanged: (value) => setState(() {
+                  _subjectId = value;
+                  _selectedClass = null;
+                }),
               ),
+              if (_subjectClasses.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _pickSubjectClass,
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: Text(
+                      _selectedClass == null
+                          ? strings.scheduleFromClass
+                          : '${strings.scheduleFromClass}: ${compactDate(context, _selectedClass!.startTime)} ${timeLabel(_selectedClass!.startTime)}',
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -215,6 +237,37 @@ class _ExamEditorState extends ConsumerState<_ExamEditor> {
   Future<void> _pickTime() async {
     final value = await showTimePicker(context: context, initialTime: _time);
     if (value != null) setState(() => _time = value);
+  }
+
+  List<Lesson> get _subjectClasses {
+    final subjectId = _subjectId;
+    if (subjectId == null) {
+      return const [];
+    }
+    return widget.data.timetable?.lessons
+            .where(
+              (lesson) =>
+                  lesson.subjectKey == subjectId &&
+                  lesson.kind != LessonKind.event,
+            )
+            .toList() ??
+        const [];
+  }
+
+  Future<void> _pickSubjectClass() async {
+    final lesson = await pickSubjectClass(context, lessons: _subjectClasses);
+    if (lesson == null) {
+      return;
+    }
+    setState(() {
+      _selectedClass = lesson;
+      _date = DateTime(
+        lesson.startTime.year,
+        lesson.startTime.month,
+        lesson.startTime.day,
+      );
+      _time = TimeOfDay.fromDateTime(lesson.startTime);
+    });
   }
 
   Future<void> _save() async {

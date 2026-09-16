@@ -17,7 +17,6 @@ import 'subjects_screen.dart';
 import 'tasks_screen.dart';
 import 'today_screen.dart';
 import 'week_screen.dart';
-import '../widgets/app_update_dialog.dart';
 import '../widgets/faculty_badge.dart';
 
 class PlannerShell extends ConsumerStatefulWidget {
@@ -31,16 +30,6 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
   static const _newTimetableDestination = '__new_timetable__';
   int _tab = 0;
   String? _facultyFilter;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        checkForAppUpdate(silentWhenCurrent: true, silentOnError: true);
-      }
-    });
-  }
 
   String _defaultTimetableId(PlannerData data) {
     final matching = _facultyFilter == null

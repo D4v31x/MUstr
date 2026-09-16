@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -6,10 +8,15 @@ import 'package:material_ui/material_ui.dart';
 
 import 'domain/entities/app_language.dart';
 import 'domain/entities/app_theme_mode.dart';
+import 'presentation/localization/app_strings.dart';
 import 'presentation/providers/planner_providers.dart';
 import 'presentation/screens/planner_shell.dart';
+import 'presentation/screens/update_check_screen.dart';
 import 'presentation/widgets/app_update_dialog.dart';
 import 'services/analytics_service.dart';
+
+final _navigatorKey = GlobalKey<NavigatorState>();
+final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +64,8 @@ class MuniPlannerApp extends ConsumerWidget {
             ? darkDynamic ?? fallbackDark
             : fallbackDark;
         return MaterialApp(
+          navigatorKey: _navigatorKey,
+          scaffoldMessengerKey: _scaffoldMessengerKey,
           theme: ThemeData(
             colorScheme: lightScheme,
             fontFamily: 'Figtree',
@@ -78,8 +87,96 @@ class MuniPlannerApp extends ConsumerWidget {
           ),
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: const PlannerShell(),
+          builder: (context, child) => _UpdateLaunchNotifier(
+            navigatorKey: _navigatorKey,
+            scaffoldMessengerKey: _scaffoldMessengerKey,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );
   }
+}
+
+class _UpdateLaunchNotifier extends StatefulWidget {
+  const _UpdateLaunchNotifier({
+    required this.navigatorKey,
+    required this.scaffoldMessengerKey,
+    required this.child,
+  });
+
+  final GlobalKey<NavigatorState> navigatorKey;
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
+  final Widget child;
+
+  @override
+  State<_UpdateLaunchNotifier> createState() => _UpdateLaunchNotifierState();
+}
+
+class _UpdateLaunchNotifierState extends State<_UpdateLaunchNotifier> {
+  String? _announcedVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    appUpdateController.addListener(_onUpdateChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(
+          checkForAppUpdate(silentWhenCurrent: true, silentOnError: true),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    appUpdateController.removeListener(_onUpdateChanged);
+    super.dispose();
+  }
+
+  void _onUpdateChanged() {
+    final release = appUpdateController.release;
+    if (!mounted ||
+        appUpdateController.phase != AppUpdatePhase.available ||
+        release == null ||
+        release.version == _announcedVersion) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          appUpdateController.phase != AppUpdatePhase.available ||
+          release.version == _announcedVersion) {
+        return;
+      }
+      final messenger = widget.scaffoldMessengerKey.currentState;
+      if (messenger == null) {
+        return;
+      }
+      _announcedVersion = release.version;
+      final strings = context.strings;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 12),
+            content: Text(strings.updateVersion(release.version)),
+            action: SnackBarAction(
+              label: strings.open,
+              onPressed: () {
+                widget.navigatorKey.currentState?.push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const UpdateCheckScreen(autoStart: false),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

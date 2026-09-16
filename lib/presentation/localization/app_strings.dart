@@ -77,6 +77,8 @@ class AppStrings {
   String deleteSubjectMessage(String value) =>
       _format('deleteSubjectMessage', value);
   String get dueOnNextClass => _text('dueOnNextClass');
+  String get scheduleFromClass => _text('scheduleFromClass');
+  String get chooseClassSession => _text('chooseClassSession');
   String notesFor(String courseCode) => _format('notesFor', courseCode);
   String get save => _text('save');
   String get saveChanges => _text('saveChanges');
@@ -521,6 +523,8 @@ class AppStrings {
       'deleteSubjectMessage':
           'Delete "{value}" and all of its scheduled classes? Homework and exams will remain unassigned.',
       'dueOnNextClass': 'Due on next class',
+      'scheduleFromClass': 'Schedule from class',
+      'chooseClassSession': 'Choose a lecture or seminar',
       'notesFor': 'Notes for {value}',
       'save': 'Save',
       'saveChanges': 'Save changes?',
@@ -807,6 +811,8 @@ class AppStrings {
       'deleteSubjectMessage':
           'Smazat „{value}“ a všechny jeho naplánované výuky? Úkoly a zkoušky zůstanou bez přiřazení.',
       'dueOnNextClass': 'Termín při příští výuce',
+      'scheduleFromClass': 'Nastavit podle výuky',
+      'chooseClassSession': 'Vyberte přednášku nebo seminář',
       'notesFor': 'Poznámky k {value}',
       'save': 'Uložit',
       'saveChanges': 'Uložit změny?',
@@ -1093,6 +1099,8 @@ class AppStrings {
       'deleteSubjectMessage':
           'Vymazať „{value}“ a všetky jeho naplánované výučby? Úlohy a skúšky zostanú nepriradené.',
       'dueOnNextClass': 'Termín na ďalšej výučbe',
+      'scheduleFromClass': 'Nastaviť podľa výučby',
+      'chooseClassSession': 'Vyberte prednášku alebo seminár',
       'notesFor': 'Poznámky k {value}',
       'save': 'Uložiť',
       'saveChanges': 'Uložiť zmeny?',
