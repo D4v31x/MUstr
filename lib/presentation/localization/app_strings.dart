@@ -232,11 +232,20 @@ class AppStrings {
   String get analyticsConsentDescription =>
       _text('analyticsConsentDescription');
   String get analyticsConsentSubtitle => _text('analyticsConsentSubtitle');
+  String get backupData => _text('backupData');
+  String get backupDataSubtitle => _text('backupDataSubtitle');
+  String get backupSaved => _text('backupSaved');
+  String get backupFailed => _text('backupFailed');
   String get allFaculties => _text('allFaculties');
   String get filterFaculty => _text('filterFaculty');
   String get moreOptions => _text('moreOptions');
   String get yourFaculties => _text('yourFaculties');
   String get importXml => _text('importXml');
+  String get connectWebcal => _text('connectWebcal');
+  String get webcalUrl => _text('webcalUrl');
+  String get syncCalendar => _text('syncCalendar');
+  String get syncedCalendar => _text('syncedCalendar');
+  String get calendarSynced => _text('calendarSynced');
   String get pasteXml => _text('pasteXml');
   String get pasteTimetableXml => _text('pasteTimetableXml');
   String get howToGetXml => _text('howToGetXml');
@@ -395,6 +404,11 @@ class AppStrings {
       'moreOptions': 'More options',
       'yourFaculties': 'Your faculties',
       'importXml': 'Import XML',
+      'connectWebcal': 'Connect calendar',
+      'webcalUrl': 'Webcal URL',
+      'syncCalendar': 'Sync calendar',
+      'syncedCalendar': 'Synced calendar',
+      'calendarSynced': 'Calendar synced.',
       'pasteXml': 'Paste XML',
       'pasteTimetableXml': 'Paste timetable XML',
       'howToGetXml': 'How to retrieve the schedule XML?',
@@ -432,6 +446,10 @@ class AppStrings {
           'Optional. Creates a random app-install ID and shares only your selected faculty IDs and anonymous usage data. You can turn it off later.',
       'analyticsConsentSubtitle':
           'Share a random app-install ID, selected faculty IDs, and anonymous usage data.',
+      'backupData': 'Back up data',
+      'backupDataSubtitle': 'Save a portable copy of your MUstr data.',
+      'backupSaved': 'Backup saved.',
+      'backupFailed': 'Could not save the backup.',
       'saveFaculties': 'Save faculties',
       'muniFaculty': 'MUNI faculty',
       'chooseFaculty': 'Assign timetable to faculty',
@@ -684,6 +702,11 @@ class AppStrings {
       'moreOptions': 'Další možnosti',
       'yourFaculties': 'Vaše fakulty',
       'importXml': 'Importovat XML',
+      'connectWebcal': 'Připojit kalendář',
+      'webcalUrl': 'Webcal URL',
+      'syncCalendar': 'Synchronizovat kalendář',
+      'syncedCalendar': 'Synchronizovaný kalendář',
+      'calendarSynced': 'Kalendář synchronizován.',
       'pasteXml': 'Vložit XML',
       'pasteTimetableXml': 'Vložit XML rozvrhu',
       'howToGetXml': 'Jak získat XML rozvrhu?',
@@ -721,6 +744,10 @@ class AppStrings {
           'Volitelné. Vytvoří náhodné ID instalace a sdílí jen vybrané fakulty a anonymní údaje o používání. Později jej můžete vypnout.',
       'analyticsConsentSubtitle':
           'Sdílet náhodné ID instalace, vybrané fakulty a anonymní údaje o používání.',
+      'backupData': 'Zálohovat data',
+      'backupDataSubtitle': 'Uložit přenositelnou kopii dat MUstr.',
+      'backupSaved': 'Záloha uložena.',
+      'backupFailed': 'Zálohu se nepodařilo uložit.',
       'saveFaculties': 'Uložit fakulty',
       'muniFaculty': 'Fakulta MU',
       'chooseFaculty': 'Přiřadit rozvrh k fakultě',
@@ -972,6 +999,11 @@ class AppStrings {
       'moreOptions': 'Ďalšie možnosti',
       'yourFaculties': 'Vaše fakulty',
       'importXml': 'Importovať XML',
+      'connectWebcal': 'Pripojiť kalendár',
+      'webcalUrl': 'Webcal URL',
+      'syncCalendar': 'Synchronizovať kalendár',
+      'syncedCalendar': 'Synchronizovaný kalendár',
+      'calendarSynced': 'Kalendár synchronizovaný.',
       'pasteXml': 'Vložiť XML',
       'pasteTimetableXml': 'Vložiť XML rozvrhu',
       'howToGetXml': 'Ako získať XML rozvrhu?',
@@ -1009,6 +1041,10 @@ class AppStrings {
           'Voliteľné. Vytvorí náhodné ID inštalácie a zdieľa len vybrané fakulty a anonymné údaje o používaní. Neskôr ho môžete vypnúť.',
       'analyticsConsentSubtitle':
           'Zdieľať náhodné ID inštalácie, vybrané fakulty a anonymné údaje o používaní.',
+      'backupData': 'Zálohovať údaje',
+      'backupDataSubtitle': 'Uložiť prenosnú kópiu údajov MUstr.',
+      'backupSaved': 'Záloha uložená.',
+      'backupFailed': 'Zálohu sa nepodarilo uložiť.',
       'saveFaculties': 'Uložiť fakulty',
       'muniFaculty': 'Fakulta MU',
       'chooseFaculty': 'Priradiť rozvrh k fakulte',

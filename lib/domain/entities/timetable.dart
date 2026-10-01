@@ -168,6 +168,8 @@ class Timetable {
     required this.importedAt,
     required this.lessons,
     required this.subjects,
+    this.webcalUrl,
+    this.lastSyncedAt,
   });
 
   final String id;
@@ -177,6 +179,10 @@ class Timetable {
   final DateTime importedAt;
   final List<Lesson> lessons;
   final List<Subject> subjects;
+  final String? webcalUrl;
+  final DateTime? lastSyncedAt;
+
+  bool get isWebcalSynced => webcalUrl != null;
 
   DateTime? get firstDate => lessons.isEmpty ? null : lessons.first.date;
   DateTime? get lastDate => lessons.isEmpty ? null : lessons.last.date;
@@ -189,5 +195,7 @@ class Timetable {
     importedAt: importedAt,
     lessons: lessons,
     subjects: subjects,
+    webcalUrl: webcalUrl,
+    lastSyncedAt: lastSyncedAt,
   );
 }

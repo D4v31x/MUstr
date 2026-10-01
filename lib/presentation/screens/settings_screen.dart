@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +11,7 @@ import '../../domain/entities/timetable.dart';
 import '../localization/app_strings.dart';
 import '../providers/planner_providers.dart';
 import '../widgets/change_confirmation_dialog.dart';
+import '../../services/backup_service.dart';
 import 'about_screen.dart';
 import 'schedule_colors_screen.dart';
 
@@ -148,6 +152,20 @@ class SettingsScreen extends ConsumerWidget {
                       .read(plannerProvider.notifier)
                       .saveAnalyticsConsent(value),
                 ),
+                const SizedBox(height: 16),
+                _SettingsPanel(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      Icons.backup_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(strings.backupData),
+                    subtitle: Text(strings.backupDataSubtitle),
+                    trailing: const Icon(Icons.save_alt_outlined),
+                    onTap: () => _saveBackup(context, currentData),
+                  ),
+                ),
                 const SizedBox(height: 32),
                 _SectionTitle(
                   icon: Icons.calendar_month_outlined,
@@ -179,6 +197,34 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+Future<void> _saveBackup(BuildContext context, PlannerData data) async {
+  final now = DateTime.now();
+  final date =
+      '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+  final Uint8List bytes = const BackupService().createBytes(
+    data,
+    createdAt: now,
+  );
+  try {
+    final output = await FilePicker.saveFile(
+      dialogTitle: context.strings.backupData,
+      fileName: 'mustr-backup-$date.json',
+      bytes: bytes,
+    );
+    if (output != null && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.strings.backupSaved)));
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.strings.backupFailed)));
+    }
   }
 }
 
@@ -595,6 +641,7 @@ class _TimetableManagerSheet extends ConsumerStatefulWidget {
 class _TimetableManagerSheetState
     extends ConsumerState<_TimetableManagerSheet> {
   final _selectedIds = <String>{};
+  final _syncingIds = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -649,12 +696,34 @@ class _TimetableManagerSheetState
                             }),
                             title: Text(timetable.name),
                             subtitle: Text(
-                              '${timetable.semester ?? strings.importedTimetable} | ${strings.scheduledClasses(timetable.lessons.length)}',
+                              '${timetable.isWebcalSynced ? strings.syncedCalendar : timetable.semester ?? strings.importedTimetable} | ${strings.scheduledClasses(timetable.lessons.length)}',
                             ),
-                            secondary: IconButton(
-                              tooltip: strings.renameTimetable,
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _renameTimetable(timetable),
+                            secondary: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (timetable.isWebcalSynced)
+                                  IconButton(
+                                    tooltip: strings.syncCalendar,
+                                    icon: _syncingIds.contains(timetable.id)
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.sync_rounded),
+                                    onPressed:
+                                        _syncingIds.contains(timetable.id)
+                                        ? null
+                                        : () => _syncWebcal(timetable),
+                                  ),
+                                IconButton(
+                                  tooltip: strings.renameTimetable,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => _renameTimetable(timetable),
+                                ),
+                              ],
                             ),
                           );
                         },
@@ -698,6 +767,28 @@ class _TimetableManagerSheetState
     await ref
         .read(plannerProvider.notifier)
         .renameTimetable(timetable.id, name);
+  }
+
+  Future<void> _syncWebcal(Timetable timetable) async {
+    setState(() => _syncingIds.add(timetable.id));
+    try {
+      await ref
+          .read(plannerProvider.notifier)
+          .syncWebcalTimetable(timetable.id);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.strings.calendarSynced)));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.importFailed('$error'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _syncingIds.remove(timetable.id));
+    }
   }
 
   Future<void> _confirmRemoval() async {

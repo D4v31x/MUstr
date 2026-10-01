@@ -185,7 +185,9 @@ class PlannerData {
 abstract interface class PlannerRepository {
   Future<PlannerData> load();
   Future<void> saveTimetable(Timetable timetable, String facultyId);
+  Future<void> saveWebcalTimetable(Timetable timetable, String facultyId);
   Future<void> mergeTimetable(String timetableId, Timetable imported);
+  Future<void> syncWebcalTimetable(String timetableId, Timetable timetable);
   Future<void> addLesson(String timetableId, Lesson lesson, Subject subject);
   Future<void> deleteTimetables(List<String> timetableIds);
   Future<void> renameTimetable(String timetableId, String name);

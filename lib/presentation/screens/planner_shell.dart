@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../data/repositories/planner_repository.dart';
+import '../../domain/entities/timetable.dart';
 import '../providers/planner_providers.dart';
 import '../localization/app_strings.dart';
 import 'faculty_onboarding.dart';
@@ -17,6 +19,7 @@ import 'subjects_screen.dart';
 import 'tasks_screen.dart';
 import 'today_screen.dart';
 import 'week_screen.dart';
+import 'webcal_url_dialog.dart';
 import '../widgets/faculty_badge.dart';
 
 class PlannerShell extends ConsumerStatefulWidget {
@@ -30,6 +33,7 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
   static const _newTimetableDestination = '__new_timetable__';
   int _tab = 0;
   String? _facultyFilter;
+  bool _webcalSyncStarted = false;
 
   String _defaultTimetableId(PlannerData data) {
     final matching = _facultyFilter == null
@@ -71,6 +75,10 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
             Navigator.of(sheetContext).pop();
             _importFile();
           },
+          onConnectWebcal: () {
+            Navigator.of(sheetContext).pop();
+            _importWebcal();
+          },
           onManageFaculties: () {
             Navigator.of(sheetContext).pop();
             showFacultyEditor(
@@ -98,14 +106,20 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
         error: error.toString(),
         onImport: _importFile,
         onPaste: _pasteXml,
+        onConnectWebcal: _importWebcal,
       ),
       data: (data) {
+        _startWebcalSync(data);
         final strings = context.strings;
         if (data.faculties.isEmpty) {
           return OnboardingScreen(language: data.language);
         }
         if (data.timetable == null) {
-          return _ImportView(onImport: _importFile, onPaste: _pasteXml);
+          return _ImportView(
+            onImport: _importFile,
+            onPaste: _pasteXml,
+            onConnectWebcal: _importWebcal,
+          );
         }
         final display = data.forFaculty(_facultyFilter);
         final labels = [
@@ -146,15 +160,24 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
             index: _tab,
             children: [
               if (display.timetable == null)
-                _FacultyEmptyView(onImport: _importFile)
+                _FacultyEmptyView(
+                  onImport: _importFile,
+                  onConnectWebcal: _importWebcal,
+                )
               else
                 TodayScreen(data: display),
               if (display.timetable == null)
-                _FacultyEmptyView(onImport: _importFile)
+                _FacultyEmptyView(
+                  onImport: _importFile,
+                  onConnectWebcal: _importWebcal,
+                )
               else
                 WeekScreen(data: display),
               if (display.timetable == null)
-                _FacultyEmptyView(onImport: _importFile)
+                _FacultyEmptyView(
+                  onImport: _importFile,
+                  onConnectWebcal: _importWebcal,
+                )
               else
                 SemesterScreen(data: display),
               TasksScreen(data: display),
@@ -231,6 +254,59 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
       ),
     );
     if (xml != null && xml.trim().isNotEmpty) await _importXml(xml);
+  }
+
+  Future<void> _importWebcal() async {
+    final url = await showDialog<String>(
+      context: context,
+      builder: (_) => const WebcalUrlDialog(),
+    );
+    if (url == null || url.trim().isEmpty || !mounted) {
+      return;
+    }
+    final facultyId = await _chooseFaculty();
+    if (facultyId == null || !mounted) {
+      return;
+    }
+    try {
+      await ref.read(plannerProvider.notifier).importWebcal(url, facultyId);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.strings.calendarSynced)));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.importFailed('$error'))),
+        );
+      }
+    }
+  }
+
+  void _startWebcalSync(PlannerData data) {
+    if (_webcalSyncStarted ||
+        !data.timetables.any((item) => item.isWebcalSynced)) {
+      return;
+    }
+    _webcalSyncStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_syncConnectedCalendars(data.timetables));
+      }
+    });
+  }
+
+  Future<void> _syncConnectedCalendars(List<Timetable> timetables) async {
+    for (final timetable in timetables.where((item) => item.isWebcalSynced)) {
+      try {
+        await ref
+            .read(plannerProvider.notifier)
+            .syncWebcalTimetable(timetable.id);
+      } catch (_) {
+        // Keep the locally cached schedule when a feed is temporarily offline.
+      }
+    }
   }
 
   Future<void> _importXml(String xml) async {
@@ -490,6 +566,7 @@ class _ScheduleOptionsSheet extends StatefulWidget {
     required this.onFacultySelected,
     required this.onAddClass,
     required this.onImport,
+    required this.onConnectWebcal,
     required this.onManageFaculties,
     required this.onSettings,
   });
@@ -499,6 +576,7 @@ class _ScheduleOptionsSheet extends StatefulWidget {
   final ValueChanged<String?> onFacultySelected;
   final VoidCallback onAddClass;
   final VoidCallback onImport;
+  final VoidCallback onConnectWebcal;
   final VoidCallback onManageFaculties;
   final VoidCallback onSettings;
 
@@ -621,6 +699,11 @@ class _ScheduleOptionsSheetState extends State<_ScheduleOptionsSheet> {
             icon: Icons.upload_file_outlined,
             title: strings.importXml,
             onTap: widget.onImport,
+          ),
+          _PopupAction(
+            icon: Icons.sync_rounded,
+            title: strings.connectWebcal,
+            onTap: widget.onConnectWebcal,
           ),
           const Divider(height: 1),
           _PopupAction(
@@ -894,11 +977,13 @@ class _ImportView extends StatelessWidget {
   const _ImportView({
     required this.onImport,
     required this.onPaste,
+    required this.onConnectWebcal,
     this.error,
   });
 
   final VoidCallback onImport;
   final VoidCallback onPaste;
+  final VoidCallback onConnectWebcal;
   final String? error;
 
   @override
@@ -951,6 +1036,15 @@ class _ImportView extends StatelessWidget {
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onConnectWebcal,
+                  icon: const Icon(Icons.sync_rounded),
+                  label: Text(context.strings.connectWebcal),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
                 child: TextButton(
                   onPressed: onPaste,
                   child: Text(context.strings.pasteXml),
@@ -988,9 +1082,13 @@ void _showHowToGetXml(BuildContext context) => showDialog<void>(
 );
 
 class _FacultyEmptyView extends StatelessWidget {
-  const _FacultyEmptyView({required this.onImport});
+  const _FacultyEmptyView({
+    required this.onImport,
+    required this.onConnectWebcal,
+  });
 
   final VoidCallback onImport;
+  final VoidCallback onConnectWebcal;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -1015,6 +1113,12 @@ class _FacultyEmptyView extends StatelessWidget {
             onPressed: onImport,
             icon: const Icon(Icons.upload_file_outlined),
             label: Text(context.strings.importXml),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onConnectWebcal,
+            icon: const Icon(Icons.sync_rounded),
+            label: Text(context.strings.connectWebcal),
           ),
         ],
       ),

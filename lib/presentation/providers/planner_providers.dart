@@ -16,6 +16,7 @@ import '../../domain/entities/important_date.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/analytics_service.dart';
+import '../../services/webcal_timetable_service.dart';
 
 final plannerRepositoryProvider = Provider<PlannerRepository>(
   (ref) => SqlitePlannerRepository(),
@@ -29,6 +30,7 @@ final plannerProvider = AsyncNotifierProvider<PlannerController, PlannerData>(
 
 class PlannerController extends AsyncNotifier<PlannerData> {
   final _parser = MuniTimetableParser();
+  final _webcal = WebcalTimetableService();
   final _uuid = const Uuid();
 
   PlannerRepository get _repository => ref.read(plannerRepositoryProvider);
@@ -66,6 +68,26 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     } else {
       await _repository.mergeTimetable(mergeIntoTimetableId, timetable);
     }
+    return _refresh();
+  }
+
+  Future<PlannerData> importWebcal(String url, String facultyId) async {
+    final timetable = await _webcal.download(url, facultyId: facultyId);
+    await _repository.saveWebcalTimetable(timetable, facultyId);
+    return _refresh();
+  }
+
+  Future<PlannerData> syncWebcalTimetable(String timetableId) async {
+    final timetable = _currentData.timetables.firstWhere(
+      (item) => item.id == timetableId,
+    );
+    final url = timetable.webcalUrl;
+    final facultyId = timetable.assignedFacultyId;
+    if (url == null || facultyId == null) {
+      throw StateError('This timetable is not connected to a web calendar.');
+    }
+    final synced = await _webcal.download(url, facultyId: facultyId);
+    await _repository.syncWebcalTimetable(timetableId, synced);
     return _refresh();
   }
 
@@ -508,6 +530,8 @@ class PlannerController extends AsyncNotifier<PlannerData> {
                   .map((item) => item.id == lesson.id ? lesson : item)
                   .toList(),
               subjects: timetable.subjects,
+              webcalUrl: timetable.webcalUrl,
+              lastSyncedAt: timetable.lastSyncedAt,
             ),
           )
           .toList();

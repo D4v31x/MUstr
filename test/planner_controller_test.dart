@@ -411,6 +411,36 @@ class _FakeRepository implements PlannerRepository {
       );
 
   @override
+  Future<void> saveWebcalTimetable(
+    Timetable timetable,
+    String facultyId,
+  ) async => data = data.withTimetables([...data.timetables, timetable]);
+
+  @override
+  Future<void> syncWebcalTimetable(
+    String timetableId,
+    Timetable timetable,
+  ) async => data = data.withTimetables(
+    data.timetables
+        .map(
+          (existing) => existing.id == timetableId
+              ? Timetable(
+                  id: existing.id,
+                  name: existing.name,
+                  assignedFacultyId: existing.assignedFacultyId,
+                  semester: timetable.semester,
+                  importedAt: timetable.importedAt,
+                  lessons: timetable.lessons,
+                  subjects: timetable.subjects,
+                  webcalUrl: existing.webcalUrl,
+                  lastSyncedAt: timetable.lastSyncedAt,
+                )
+              : existing,
+        )
+        .toList(),
+  );
+
+  @override
   Future<void> mergeTimetable(String timetableId, Timetable imported) async {
     data = data.withTimetables(
       data.timetables.map((timetable) {

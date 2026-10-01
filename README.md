@@ -28,11 +28,13 @@ MUstr turns an exported MUNI timetable into a clear, personal schedule you can u
 - **Important dates**: Add course registration, enrollment changes, tuition deadlines, holidays, or any other key date. Dates can have an optional time, faculty scope, and reminder.
 - **Tasks and courses**: Attach homework, notes, and reminders to imported subjects.
 - **Multiple faculties and schedules**: Import more than one timetable, filter by faculty, or merge an updated XML export into an existing schedule.
+- **Synced MUNI calendar**: Connect a private `webcal://` calendar link from IS MU. MUstr refreshes it when the app opens, keeps the last successful copy available offline, and lets you sync it again from Timetables.
 - **Manual classes**: Add a lecture, seminar, or event that is missing from an XML export.
 - **Class preferences and reminders**: Set a priority, a personal color, or a reminder for an individual class occurrence.
 - **Home-screen widget**: Keep your selected schedule visible from the Android home screen. It includes exams and important dates and automatically omits finished classes.
 - **Your language and appearance**: Available in English, Czech, and Slovak, with system, light, and dark modes. Use Material You colors from your device or choose a MUstr palette.
 - **Safer changes**: Confirm before deleting schedule data or saving edits to an existing item.
+- **Portable backups**: Save a complete JSON copy of your schedules, classes, tasks, exams, reminders, preferences, and connected calendar details.
 - **In-app updates**: Check and install new Android releases from GitHub when available.
 
 ## Get MUstr
@@ -52,6 +54,16 @@ MUstr can also download future releases from the in-app **Check for updates** sc
 4. When importing an updated export, choose whether to create a new timetable or merge it into the existing one.
 
 The imported schedule is stored on your device. The app continues to work offline after the import.
+
+## Sync Your MUNI Calendar
+
+In IS MU, create your private calendar link and copy its `webcal://` address. In MUstr, open the schedule menu, choose **Connect calendar**, paste the link, and select the faculty it belongs to. MUstr downloads the calendar, stores it locally, and refreshes connected calendars when it opens. You can also sync a connected calendar manually from **Settings > Timetables**.
+
+Your calendar link is private: anyone with it can read your schedule. Do not share it, and regenerate it in IS MU if it is exposed.
+
+## Back Up Your Data
+
+Open **Settings** and choose **Back up data** to save a `mustr-backup-YYYYMMDD.json` file through Android's document picker. The backup includes all schedules, manual classes, tasks, notes, exams, important dates, reminders, display preferences, and connected calendar URLs. Store it securely because a connected calendar URL can grant access to your schedule.
 
 ## Important Dates and Reminders
 

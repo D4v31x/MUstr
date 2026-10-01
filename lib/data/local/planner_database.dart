@@ -25,13 +25,13 @@ class SqlitePlannerRepository implements PlannerRepository {
     final directory = await getApplicationDocumentsDirectory();
     final database = await openDatabase(
       path.join(directory.path, 'muni_planner.db'),
-      version: 10,
+      version: 11,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE timetables (
             id TEXT PRIMARY KEY, name TEXT NOT NULL, semester TEXT,
             imported_at TEXT NOT NULL, is_active INTEGER NOT NULL,
-            faculty_id TEXT
+            faculty_id TEXT, webcal_url TEXT, last_synced_at TEXT
           )
         ''');
         await db.execute(
@@ -57,7 +57,7 @@ class SqlitePlannerRepository implements PlannerRepository {
             id TEXT PRIMARY KEY, timetable_id TEXT NOT NULL, date TEXT NOT NULL,
             start_at TEXT NOT NULL, end_at TEXT NOT NULL, subject_key TEXT NOT NULL,
             course_code TEXT NOT NULL, course_name TEXT NOT NULL, subject_id TEXT,
-            faculty TEXT, timetable_faculty_id TEXT, semester TEXT, seminar_group TEXT, lesson_kind INTEGER NOT NULL DEFAULT 0, rooms TEXT NOT NULL, teachers TEXT NOT NULL
+            faculty TEXT, timetable_faculty_id TEXT, semester TEXT, seminar_group TEXT, lesson_kind INTEGER NOT NULL DEFAULT 0, rooms TEXT NOT NULL, teachers TEXT NOT NULL, sync_source TEXT NOT NULL DEFAULT 'manual'
           )
         ''');
         await db.execute('''
@@ -139,6 +139,15 @@ class SqlitePlannerRepository implements PlannerRepository {
         if (oldVersion < 10) {
           await db.execute(
             'ALTER TABLE lesson_preferences ADD COLUMN reminder_at TEXT',
+          );
+        }
+        if (oldVersion < 11) {
+          await db.execute('ALTER TABLE timetables ADD COLUMN webcal_url TEXT');
+          await db.execute(
+            'ALTER TABLE timetables ADD COLUMN last_synced_at TEXT',
+          );
+          await db.execute(
+            "ALTER TABLE lessons ADD COLUMN sync_source TEXT NOT NULL DEFAULT 'manual'",
           );
         }
       },
@@ -238,6 +247,10 @@ class SqlitePlannerRepository implements PlannerRepository {
               )
               .toList(),
           subjects: subjects,
+          webcalUrl: row['webcal_url'] as String?,
+          lastSyncedAt: row['last_synced_at'] == null
+              ? null
+              : DateTime.parse(row['last_synced_at']! as String),
         ),
       );
     }
@@ -326,6 +339,78 @@ class SqlitePlannerRepository implements PlannerRepository {
       for (final lesson in timetable.lessons) {
         await transaction.insert('lessons', _lessonToRow(lesson, timetable.id));
       }
+    });
+  }
+
+  @override
+  Future<void> saveWebcalTimetable(
+    Timetable timetable,
+    String facultyId,
+  ) async {
+    final db = await _db;
+    await db.transaction((transaction) async {
+      await transaction.insert('timetables', {
+        'id': timetable.id,
+        'name': timetable.name,
+        'semester': timetable.semester,
+        'imported_at': timetable.importedAt.toIso8601String(),
+        'is_active': 1,
+        'faculty_id': facultyId,
+        'webcal_url': timetable.webcalUrl,
+        'last_synced_at': timetable.lastSyncedAt?.toIso8601String(),
+      });
+      for (final subject in timetable.subjects) {
+        await _saveTimetableSubject(transaction, timetable.id, subject);
+      }
+      for (final lesson in timetable.lessons) {
+        await transaction.insert(
+          'lessons',
+          _lessonToRow(lesson, timetable.id, syncSource: 'webcal'),
+        );
+      }
+    });
+  }
+
+  @override
+  Future<void> syncWebcalTimetable(
+    String timetableId,
+    Timetable timetable,
+  ) async {
+    final db = await _db;
+    await db.transaction((transaction) async {
+      final target = await transaction.query(
+        'timetables',
+        columns: ['id'],
+        where: 'id = ? AND webcal_url IS NOT NULL',
+        whereArgs: [timetableId],
+        limit: 1,
+      );
+      if (target.isEmpty) {
+        throw StateError('The synced calendar no longer exists.');
+      }
+      await transaction.delete(
+        'lessons',
+        where: "timetable_id = ? AND sync_source = 'webcal'",
+        whereArgs: [timetableId],
+      );
+      for (final subject in timetable.subjects) {
+        await _saveTimetableSubject(transaction, timetableId, subject);
+      }
+      for (final lesson in timetable.lessons) {
+        await transaction.insert(
+          'lessons',
+          _lessonToRow(lesson, timetableId, syncSource: 'webcal'),
+        );
+      }
+      await transaction.update(
+        'timetables',
+        {
+          'imported_at': timetable.importedAt.toIso8601String(),
+          'last_synced_at': timetable.lastSyncedAt?.toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [timetableId],
+      );
     });
   }
 
@@ -782,7 +867,41 @@ class SqlitePlannerRepository implements PlannerRepository {
     return rows.map(_taskFromRow).toList();
   }
 
-  Map<String, Object?> _lessonToRow(Lesson lesson, String timetableId) => {
+  Future<void> _saveTimetableSubject(
+    Transaction transaction,
+    String timetableId,
+    Subject subject,
+  ) async {
+    await transaction.insert('subjects', {
+      'id': subject.id,
+      'course_code': subject.courseCode,
+      'name': subject.name,
+      'subject_id': subject.subjectId,
+      'faculty': subject.faculty,
+      'notes': subject.notes,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await transaction.update(
+      'subjects',
+      {
+        'course_code': subject.courseCode,
+        'name': subject.name,
+        'subject_id': subject.subjectId,
+        'faculty': subject.faculty,
+      },
+      where: 'id = ?',
+      whereArgs: [subject.id],
+    );
+    await transaction.insert('timetable_subjects', {
+      'timetable_id': timetableId,
+      'subject_id': subject.id,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Map<String, Object?> _lessonToRow(
+    Lesson lesson,
+    String timetableId, {
+    String syncSource = 'manual',
+  }) => {
     'id': lesson.id,
     'timetable_id': timetableId,
     'date': _date(lesson.date),
@@ -797,6 +916,7 @@ class SqlitePlannerRepository implements PlannerRepository {
     'semester': lesson.semester,
     'seminar_group': lesson.seminarGroup,
     'lesson_kind': lesson.kind.index,
+    'sync_source': syncSource,
     'rooms': jsonEncode(
       lesson.rooms.map((room) => {'id': room.id, 'name': room.name}).toList(),
     ),
