@@ -59,6 +59,12 @@ The imported schedule is stored on your device. The app continues to work offlin
 
 In IS MU, create your private calendar link and copy its `webcal://` address. In MUstr, open the schedule menu, choose **Connect calendar**, paste the link, and select the faculty it belongs to. MUstr downloads the calendar, stores it locally, and refreshes connected calendars when it opens. You can also sync a connected calendar manually from **Settings > Timetables**.
 
+IS MU calendars mix lectures and seminars with exam terms, quizzes, and
+deregistration deadlines. Use the filter button in the app bar to hide event
+types (for example quizzes or exam terms) or whole subjects everywhere in the
+app. Hidden items stay in the local copy, so you can show them again without
+re-syncing.
+
 Your calendar link is private: anyone with it can read your schedule. Do not share it, and regenerate it in IS MU if it is exposed.
 
 ## Back Up Your Data

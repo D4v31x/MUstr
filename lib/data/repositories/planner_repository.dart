@@ -20,6 +20,7 @@ class PlannerData {
     this.highlightCurrentDay = true,
     this.analyticsConsent = false,
     this.analyticsInstallationId,
+    this.eventFilter = const FeedFilter(),
     this.exams = const [],
     this.examPeriods = const [],
     List<ImportantDate>? importantDates,
@@ -39,6 +40,7 @@ class PlannerData {
   final bool highlightCurrentDay;
   final bool analyticsConsent;
   final String? analyticsInstallationId;
+  final FeedFilter eventFilter;
   final List<Exam> exams;
   final List<ExamPeriod> examPeriods;
   final List<ImportantDate>? _importantDates;
@@ -59,6 +61,7 @@ class PlannerData {
     bool? highlightCurrentDay,
     bool? analyticsConsent,
     String? analyticsInstallationId,
+    FeedFilter? eventFilter,
     List<Exam>? exams,
     List<ExamPeriod>? examPeriods,
     List<ImportantDate>? importantDates,
@@ -78,6 +81,7 @@ class PlannerData {
     analyticsConsent: analyticsConsent ?? this.analyticsConsent,
     analyticsInstallationId:
         analyticsInstallationId ?? this.analyticsInstallationId,
+    eventFilter: eventFilter ?? this.eventFilter,
     exams: exams ?? this.exams,
     examPeriods: examPeriods ?? this.examPeriods,
     importantDates: importantDates ?? this.importantDates,
@@ -92,12 +96,13 @@ class PlannerData {
       for (final subject in timetables.expand(
         (timetable) => timetable.subjects,
       ))
-        subject.id: subject,
+        if (!eventFilter.hiddenSubjectIds.contains(subject.id))
+          subject.id: subject,
     };
     final subjects = subjectsById.values.toList()
       ..sort((first, second) => first.courseCode.compareTo(second.courseCode));
     return PlannerData(
-      timetable: lessons.isEmpty
+      timetable: timetables.isEmpty
           ? null
           : Timetable(
               id: 'combined',
@@ -119,6 +124,7 @@ class PlannerData {
       highlightCurrentDay: highlightCurrentDay,
       analyticsConsent: analyticsConsent,
       analyticsInstallationId: analyticsInstallationId,
+      eventFilter: eventFilter,
       exams: exams,
       examPeriods: examPeriods,
       importantDates: importantDates,
@@ -131,19 +137,39 @@ class PlannerData {
     if (facultyId == null) {
       return this;
     }
-    final selected = timetables
-        .where((timetable) => timetable.assignedFacultyId == facultyId)
-        .toList();
+    final selected = <Timetable>[];
+    for (final timetable in timetables) {
+      if (!timetable.isWebcalSynced) {
+        if (timetable.assignedFacultyId == facultyId) {
+          selected.add(timetable);
+        }
+        continue;
+      }
+      // A synced calendar can mix courses from several faculties.
+      String? owner(String? faculty) => faculty ?? timetable.assignedFacultyId;
+      bool belongs(String? owner) =>
+          owner == facultyId || owner == MuniFaculties.universityWideId;
+      final lessons = timetable.lessons
+          .where((lesson) => belongs(owner(lesson.timetableFacultyId)))
+          .toList();
+      final subjects = timetable.subjects
+          .where((subject) => belongs(owner(subject.faculty)))
+          .toList();
+      if (lessons.isNotEmpty || subjects.isNotEmpty) {
+        selected.add(timetable.copyWith(lessons: lessons, subjects: subjects));
+      }
+    }
     final lessons = selected.expand((timetable) => timetable.lessons).toList()
       ..sort((first, second) => first.startTime.compareTo(second.startTime));
     final subjectsById = <String, Subject>{
       for (final subject in selected.expand((timetable) => timetable.subjects))
-        subject.id: subject,
+        if (!eventFilter.hiddenSubjectIds.contains(subject.id))
+          subject.id: subject,
     };
     final selectedSubjects = subjectsById.values.toList()
       ..sort((first, second) => first.courseCode.compareTo(second.courseCode));
     return PlannerData(
-      timetable: lessons.isEmpty
+      timetable: selected.isEmpty
           ? null
           : Timetable(
               id: 'faculty-$facultyId',
@@ -165,6 +191,7 @@ class PlannerData {
       highlightCurrentDay: highlightCurrentDay,
       analyticsConsent: analyticsConsent,
       analyticsInstallationId: analyticsInstallationId,
+      eventFilter: eventFilter,
       exams: exams.where((exam) => exam.facultyId == facultyId).toList(),
       examPeriods: examPeriods
           .where((period) => period.facultyId == facultyId)
@@ -188,6 +215,8 @@ abstract interface class PlannerRepository {
   Future<void> saveWebcalTimetable(Timetable timetable, String facultyId);
   Future<void> mergeTimetable(String timetableId, Timetable imported);
   Future<void> syncWebcalTimetable(String timetableId, Timetable timetable);
+  Future<void> saveEventFilter(FeedFilter filter);
+  Future<void> saveSubjectFaculty(String subjectId, String facultyId);
   Future<void> addLesson(String timetableId, Lesson lesson, Subject subject);
   Future<void> deleteTimetables(List<String> timetableIds);
   Future<void> renameTimetable(String timetableId, String name);

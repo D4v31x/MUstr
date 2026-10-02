@@ -25,7 +25,7 @@ class SqlitePlannerRepository implements PlannerRepository {
     final directory = await getApplicationDocumentsDirectory();
     final database = await openDatabase(
       path.join(directory.path, 'muni_planner.db'),
-      version: 11,
+      version: 12,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE timetables (
@@ -57,7 +57,7 @@ class SqlitePlannerRepository implements PlannerRepository {
             id TEXT PRIMARY KEY, timetable_id TEXT NOT NULL, date TEXT NOT NULL,
             start_at TEXT NOT NULL, end_at TEXT NOT NULL, subject_key TEXT NOT NULL,
             course_code TEXT NOT NULL, course_name TEXT NOT NULL, subject_id TEXT,
-            faculty TEXT, timetable_faculty_id TEXT, semester TEXT, seminar_group TEXT, lesson_kind INTEGER NOT NULL DEFAULT 0, rooms TEXT NOT NULL, teachers TEXT NOT NULL, sync_source TEXT NOT NULL DEFAULT 'manual'
+            faculty TEXT, timetable_faculty_id TEXT, semester TEXT, seminar_group TEXT, lesson_kind INTEGER NOT NULL DEFAULT 0, rooms TEXT NOT NULL, teachers TEXT NOT NULL, sync_source TEXT NOT NULL DEFAULT 'manual', feed_category TEXT
           )
         ''');
         await db.execute('''
@@ -150,6 +150,9 @@ class SqlitePlannerRepository implements PlannerRepository {
             "ALTER TABLE lessons ADD COLUMN sync_source TEXT NOT NULL DEFAULT 'manual'",
           );
         }
+        if (oldVersion < 12) {
+          await db.execute('ALTER TABLE lessons ADD COLUMN feed_category TEXT');
+        }
       },
     );
     await _ensureImportantDateTable(database);
@@ -224,15 +227,28 @@ class SqlitePlannerRepository implements PlannerRepository {
       orderBy: 'imported_at DESC',
     );
     final timetables = <Timetable>[];
+    final eventFilter = _filterFromJson(await _readSetting(db, 'event_filter'));
+    final subjectFaculties = _subjectFacultiesFromJson(
+      await _readSetting(db, 'subject_faculties'),
+    );
     for (final row in timetableRows) {
       final timetableId = row['id']! as String;
+      final overrides = row['webcal_url'] == null
+          ? const <String, String>{}
+          : subjectFaculties;
       final lessonRows = await db.query(
         'lessons',
         where: 'timetable_id = ?',
         whereArgs: [timetableId],
         orderBy: 'start_at',
       );
-      final subjects = await _readSubjects(db, timetableId);
+      final subjects = (await _readSubjects(db, timetableId))
+          .map(
+            (subject) => overrides.containsKey(subject.id)
+                ? subject.copyWith(faculty: overrides[subject.id])
+                : subject,
+          )
+          .toList();
       timetables.add(
         Timetable(
           id: timetableId,
@@ -241,10 +257,15 @@ class SqlitePlannerRepository implements PlannerRepository {
           semester: row['semester'] as String?,
           importedAt: DateTime.parse(row['imported_at']! as String),
           lessons: lessonRows
-              .map(
-                (row) =>
-                    _lessonFromRow(row, lessonPreferences[row['id'] as String]),
-              )
+              .map((row) {
+                final lesson = _lessonFromRow(
+                  row,
+                  lessonPreferences[row['id'] as String],
+                );
+                final faculty = overrides[lesson.subjectKey];
+                return faculty == null ? lesson : lesson.withFaculty(faculty);
+              })
+              .where((lesson) => !eventFilter.hides(lesson))
               .toList(),
           subjects: subjects,
           webcalUrl: row['webcal_url'] as String?,
@@ -264,12 +285,13 @@ class SqlitePlannerRepository implements PlannerRepository {
       for (final subject in timetables.expand(
         (timetable) => timetable.subjects,
       ))
-        subject.id: subject,
+        if (!eventFilter.hiddenSubjectIds.contains(subject.id))
+          subject.id: subject,
     };
     final subjects = subjectsById.values.toList()
       ..sort((first, second) => first.courseCode.compareTo(second.courseCode));
     return PlannerData(
-      timetable: lessons.isEmpty
+      timetable: timetables.isEmpty
           ? null
           : Timetable(
               id: 'combined',
@@ -291,6 +313,7 @@ class SqlitePlannerRepository implements PlannerRepository {
       highlightCurrentDay: highlightCurrentDay,
       analyticsConsent: analyticsConsent,
       analyticsInstallationId: analyticsInstallationId,
+      eventFilter: eventFilter,
       exams: exams,
       examPeriods: examPeriods,
       importantDates: importantDates,
@@ -412,6 +435,61 @@ class SqlitePlannerRepository implements PlannerRepository {
         whereArgs: [timetableId],
       );
     });
+  }
+
+  @override
+  Future<void> saveEventFilter(FeedFilter filter) async {
+    final db = await _db;
+    if (filter.isEmpty) {
+      await db.delete(
+        'app_settings',
+        where: 'key = ?',
+        whereArgs: ['event_filter'],
+      );
+      return;
+    }
+    await db.insert('app_settings', {
+      'key': 'event_filter',
+      'value': _filterToJson(filter),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> saveSubjectFaculty(String subjectId, String facultyId) async {
+    final db = await _db;
+    final current = _subjectFacultiesFromJson(
+      await _readSetting(db, 'subject_faculties'),
+    );
+    await db.insert('app_settings', {
+      'key': 'subject_faculties',
+      'value': jsonEncode({...current, subjectId: facultyId}),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Map<String, String> _subjectFacultiesFromJson(String? source) =>
+      source == null
+      ? const {}
+      : (jsonDecode(source) as Map<String, dynamic>).cast<String, String>();
+
+  String _filterToJson(FeedFilter filter) => jsonEncode({
+    'categories': filter.hiddenCategories.map((item) => item.name).toList(),
+    'subjects': filter.hiddenSubjectIds.toList(),
+  });
+
+  FeedFilter _filterFromJson(String? source) {
+    if (source == null) {
+      return const FeedFilter();
+    }
+    final json = jsonDecode(source) as Map<String, dynamic>;
+    return FeedFilter(
+      hiddenCategories: {
+        for (final name in (json['categories'] as List<dynamic>? ?? const []))
+          ...FeedCategory.values.where((item) => item.name == name),
+      },
+      hiddenSubjectIds: {
+        ...(json['subjects'] as List<dynamic>? ?? const []).cast<String>(),
+      },
+    );
   }
 
   @override
@@ -917,6 +995,7 @@ class SqlitePlannerRepository implements PlannerRepository {
     'seminar_group': lesson.seminarGroup,
     'lesson_kind': lesson.kind.index,
     'sync_source': syncSource,
+    'feed_category': lesson.feedCategory?.name,
     'rooms': jsonEncode(
       lesson.rooms.map((room) => {'id': room.id, 'name': room.name}).toList(),
     ),
@@ -968,6 +1047,9 @@ class SqlitePlannerRepository implements PlannerRepository {
               : LessonPriority.normal),
       customColorValue: preference?.colorValue,
       reminderAt: preference?.reminderAt,
+      feedCategory: FeedCategory.values
+          .where((item) => item.name == row['feed_category'])
+          .firstOrNull,
       rooms: rooms,
       teachers: teachers,
     );

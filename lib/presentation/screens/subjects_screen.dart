@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/planner_repository.dart';
+import '../../domain/entities/faculty.dart';
 import '../../domain/entities/timetable.dart';
 import '../providers/planner_providers.dart';
 import '../widgets/change_confirmation_dialog.dart';
@@ -158,6 +159,19 @@ class SubjectSheet extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 24),
+              if (subject.id.startsWith('webcal:'))
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.account_balance_outlined),
+                  title: Text(strings.faculty),
+                  trailing: subject.faculty == null
+                      ? null
+                      : FacultyBadge(
+                          facultyId: subject.faculty!,
+                          compact: true,
+                        ),
+                  onTap: () => _chooseFaculty(context, ref),
+                ),
               if (teachers.isNotEmpty)
                 _Info(
                   icon: Icons.person_outline,
@@ -230,6 +244,40 @@ class SubjectSheet extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _chooseFaculty(BuildContext context, WidgetRef ref) async {
+    final facultyId = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(context.strings.chooseFaculty),
+        children: [
+          for (final faculty in [
+            ...data.faculties,
+            MuniFaculties.universityWide,
+          ])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, faculty.id),
+              child: Row(
+                children: [
+                  FacultyBadge(facultyId: faculty.id),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      faculty.localizedName(context.strings.languageCode),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (facultyId == null || facultyId == subject.faculty) return;
+    await ref
+        .read(plannerProvider.notifier)
+        .saveSubjectFaculty(subject.id, facultyId);
+    if (context.mounted) Navigator.pop(context);
   }
 
   Future<void> _editNotes(BuildContext context, WidgetRef ref) async {

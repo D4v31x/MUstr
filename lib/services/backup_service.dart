@@ -42,6 +42,12 @@ class BackupService {
       'highlightCurrentDay': data.highlightCurrentDay,
       'analyticsConsent': data.analyticsConsent,
       'analyticsInstallationId': data.analyticsInstallationId,
+      'eventFilter': {
+        'hiddenCategories': data.eventFilter.hiddenCategories
+            .map((category) => category.name)
+            .toList(),
+        'hiddenSubjectIds': data.eventFilter.hiddenSubjectIds.toList(),
+      },
     },
     'facultyIds': data.faculties.map((faculty) => faculty.id).toList(),
     'timetables': data.timetables.map(_timetable).toList(),
@@ -86,6 +92,7 @@ class BackupService {
     'semester': lesson.semester,
     'seminarGroup': lesson.seminarGroup,
     'kind': lesson.kind.name,
+    'feedCategory': lesson.feedCategory?.name,
     'priority': lesson.priority.name,
     'customColorValue': lesson.customColorValue,
     'reminderAt': lesson.reminderAt?.toIso8601String(),

@@ -24,6 +24,10 @@ String shortWeekday(BuildContext context, DateTime value) => _capitalize(
 String _capitalize(String value) =>
     value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
 String timeLabel(DateTime value) => DateFormat('HH:mm').format(value);
+
+String lessonTimeLabel(Lesson lesson) => lesson.isInstant
+    ? timeLabel(lesson.startTime)
+    : '${timeLabel(lesson.startTime)} - ${timeLabel(lesson.endTime)}';
 String timetableCodeLabel(Lesson lesson) =>
     lesson.kind == LessonKind.seminar && lesson.seminarGroup != null
     ? '${lesson.courseCode} / ${lesson.seminarGroup}'

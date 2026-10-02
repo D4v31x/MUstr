@@ -246,6 +246,22 @@ class AppStrings {
   String get syncCalendar => _text('syncCalendar');
   String get syncedCalendar => _text('syncedCalendar');
   String get calendarSynced => _text('calendarSynced');
+  String get calendarFilters => _text('calendarFilters');
+  String get showAllEvents => _text('showAllEvents');
+  String get importingCalendar => _text('importingCalendar');
+  String get importStepDownload => _text('importStepDownload');
+  String get importStepRead => _text('importStepRead');
+  String get importStepSave => _text('importStepSave');
+  String calendarEvents(int count) => _format('calendarEvents', '$count');
+  String get calendarFiltersSubtitle => _text('calendarFiltersSubtitle');
+  String get calendarEventTypes => _text('calendarEventTypes');
+  String get calendarSubjects => _text('calendarSubjects');
+  String get feedLectures => _text('feedLectures');
+  String get feedSeminars => _text('feedSeminars');
+  String get feedExams => _text('feedExams');
+  String get feedQuizzes => _text('feedQuizzes');
+  String get feedDeadlines => _text('feedDeadlines');
+  String get feedOther => _text('feedOther');
   String get pasteXml => _text('pasteXml');
   String get pasteTimetableXml => _text('pasteTimetableXml');
   String get howToGetXml => _text('howToGetXml');
@@ -409,6 +425,22 @@ class AppStrings {
       'syncCalendar': 'Sync calendar',
       'syncedCalendar': 'Synced calendar',
       'calendarSynced': 'Calendar synced.',
+      'calendarFilters': 'Filter events',
+      'calendarFiltersSubtitle': 'Choose which events appear across the app.',
+      'showAllEvents': 'Show all',
+      'importingCalendar': 'Importing calendar',
+      'importStepDownload': 'Downloading calendar',
+      'importStepRead': 'Reading events',
+      'importStepSave': 'Saving schedule',
+      'calendarEvents': '{value} events',
+      'calendarEventTypes': 'Event types',
+      'calendarSubjects': 'Subjects',
+      'feedLectures': 'Lectures',
+      'feedSeminars': 'Seminars',
+      'feedExams': 'Exam terms',
+      'feedQuizzes': 'Quizzes',
+      'feedDeadlines': 'Deadlines',
+      'feedOther': 'Other events',
       'pasteXml': 'Paste XML',
       'pasteTimetableXml': 'Paste timetable XML',
       'howToGetXml': 'How to retrieve the schedule XML?',
@@ -707,6 +739,23 @@ class AppStrings {
       'syncCalendar': 'Synchronizovat kalendář',
       'syncedCalendar': 'Synchronizovaný kalendář',
       'calendarSynced': 'Kalendář synchronizován.',
+      'calendarFilters': 'Filtrovat události',
+      'calendarFiltersSubtitle':
+          'Vyberte, které události se zobrazí v celé aplikaci.',
+      'showAllEvents': 'Zobrazit vše',
+      'importingCalendar': 'Import kalendáře',
+      'importStepDownload': 'Stahování kalendáře',
+      'importStepRead': 'Načítání událostí',
+      'importStepSave': 'Ukládání rozvrhu',
+      'calendarEvents': '{value} událostí',
+      'calendarEventTypes': 'Typy událostí',
+      'calendarSubjects': 'Předměty',
+      'feedLectures': 'Přednášky',
+      'feedSeminars': 'Semináře',
+      'feedExams': 'Zkušební termíny',
+      'feedQuizzes': 'Odpovědníky',
+      'feedDeadlines': 'Termíny a uzávěrky',
+      'feedOther': 'Ostatní události',
       'pasteXml': 'Vložit XML',
       'pasteTimetableXml': 'Vložit XML rozvrhu',
       'howToGetXml': 'Jak získat XML rozvrhu?',
@@ -1004,6 +1053,23 @@ class AppStrings {
       'syncCalendar': 'Synchronizovať kalendár',
       'syncedCalendar': 'Synchronizovaný kalendár',
       'calendarSynced': 'Kalendár synchronizovaný.',
+      'calendarFilters': 'Filtrovať udalosti',
+      'calendarFiltersSubtitle':
+          'Vyberte, ktoré udalosti sa zobrazia v celej aplikácii.',
+      'showAllEvents': 'Zobraziť všetko',
+      'importingCalendar': 'Import kalendára',
+      'importStepDownload': 'Sťahovanie kalendára',
+      'importStepRead': 'Načítavanie udalostí',
+      'importStepSave': 'Ukladanie rozvrhu',
+      'calendarEvents': '{value} udalostí',
+      'calendarEventTypes': 'Typy udalostí',
+      'calendarSubjects': 'Predmety',
+      'feedLectures': 'Prednášky',
+      'feedSeminars': 'Semináre',
+      'feedExams': 'Skúškové termíny',
+      'feedQuizzes': 'Odpovedníky',
+      'feedDeadlines': 'Termíny a uzávierky',
+      'feedOther': 'Ostatné udalosti',
       'pasteXml': 'Vložiť XML',
       'pasteTimetableXml': 'Vložiť XML rozvrhu',
       'howToGetXml': 'Ako získať XML rozvrhu?',

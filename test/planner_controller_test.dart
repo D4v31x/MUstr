@@ -441,6 +441,13 @@ class _FakeRepository implements PlannerRepository {
   );
 
   @override
+  Future<void> saveEventFilter(FeedFilter filter) async =>
+      data = data.copyWith(eventFilter: filter);
+
+  @override
+  Future<void> saveSubjectFaculty(String subjectId, String facultyId) async {}
+
+  @override
   Future<void> mergeTimetable(String timetableId, Timetable imported) async {
     data = data.withTimetables(
       data.timetables.map((timetable) {

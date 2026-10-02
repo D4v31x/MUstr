@@ -111,6 +111,21 @@ abstract final class MuniFaculties {
     ),
   ];
 
-  static Faculty? byId(String? id) =>
-      id == null ? null : all.where((faculty) => faculty.id == id).firstOrNull;
+  static const universityWideId = 'muni';
+
+  // Not a membership choice: it belongs to every faculty view.
+  static const universityWide = Faculty(
+    id: universityWideId,
+    name: 'Celouniverzitní',
+    nameEn: 'University-wide',
+    nameSk: 'Celouniverzitný',
+    shortName: 'MU',
+    color: Color(0xff0000DC),
+  );
+
+  static Faculty? byId(String? id) => id == null
+      ? null
+      : id == universityWideId
+      ? universityWide
+      : all.where((faculty) => faculty.id == id).firstOrNull;
 }

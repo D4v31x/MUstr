@@ -64,11 +64,13 @@ class SemesterScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _SemesterRange(
-          startDate: timetable.firstDate!,
-          endDate: timetable.lastDate!,
-        ),
-        const SizedBox(height: 24),
+        if (timetable.firstDate != null && timetable.lastDate != null) ...[
+          _SemesterRange(
+            startDate: timetable.firstDate!,
+            endDate: timetable.lastDate!,
+          ),
+          const SizedBox(height: 24),
+        ],
         Wrap(
           spacing: 12,
           runSpacing: 8,

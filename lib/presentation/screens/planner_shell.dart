@@ -20,7 +20,10 @@ import 'tasks_screen.dart';
 import 'today_screen.dart';
 import 'week_screen.dart';
 import 'webcal_url_dialog.dart';
+import '../widgets/event_filter_sheet.dart';
 import '../widgets/faculty_badge.dart';
+import '../widgets/webcal_import_progress_dialog.dart';
+import '../../services/webcal_timetable_service.dart';
 
 class PlannerShell extends ConsumerStatefulWidget {
   const PlannerShell({super.key});
@@ -149,6 +152,16 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
               ],
             ),
             actions: [
+              if (data.timetables.any((item) => item.isWebcalSynced))
+                IconButton(
+                  tooltip: strings.calendarFilters,
+                  onPressed: () => showEventFilterSheet(context),
+                  icon: Icon(
+                    data.eventFilter.isEmpty
+                        ? Icons.filter_list_rounded
+                        : Icons.filter_alt_rounded,
+                  ),
+                ),
               IconButton(
                 tooltip: strings.moreOptions,
                 onPressed: () => _showOptionsSheet(data),
@@ -268,20 +281,42 @@ class _PlannerShellState extends ConsumerState<PlannerShell> {
     if (facultyId == null || !mounted) {
       return;
     }
+    final progress = ValueNotifier(
+      const WebcalImportProgress(WebcalImportStage.downloading),
+    );
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => WebcalImportProgressDialog(progress: progress),
+      ),
+    );
+    Object? failure;
     try {
-      await ref.read(plannerProvider.notifier).importWebcal(url, facultyId);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.strings.calendarSynced)));
-      }
+      await ref
+          .read(plannerProvider.notifier)
+          .importWebcal(
+            url,
+            facultyId,
+            onProgress: (value) => progress.value = value,
+          );
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.strings.importFailed('$error'))),
-        );
-      }
+      failure = error;
     }
+    navigator.pop();
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          failure == null
+              ? context.strings.calendarSynced
+              : context.strings.importFailed('$failure'),
+        ),
+      ),
+    );
   }
 
   void _startWebcalSync(PlannerData data) {

@@ -163,7 +163,9 @@ String _formatScheduleItem(
   final startTime = item.isAllDay
       ? _allDayLabels[languageCode] ?? _allDayLabels['en']!
       : _timeLabel(item.start);
-  final endTime = item.isAllDay ? '' : _timeLabel(item.end);
+  final endTime = item.isAllDay || (item.lesson?.isInstant ?? false)
+      ? ''
+      : _timeLabel(item.end);
   final isToday =
       item.start.year == now.year &&
       item.start.month == now.month &&

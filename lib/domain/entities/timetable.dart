@@ -2,6 +2,44 @@ enum LessonKind { lecture, seminar, event }
 
 enum LessonPriority { low, normal, high }
 
+enum FeedCategory { lecture, seminar, exam, quiz, deadline, other }
+
+class FeedFilter {
+  const FeedFilter({
+    this.hiddenCategories = const {},
+    this.hiddenSubjectIds = const {},
+  });
+
+  final Set<FeedCategory> hiddenCategories;
+  final Set<String> hiddenSubjectIds;
+
+  bool get isEmpty => hiddenCategories.isEmpty && hiddenSubjectIds.isEmpty;
+
+  // Manually added classes carry no feed category and are never hidden.
+  bool hides(Lesson lesson) {
+    final category = lesson.feedCategory;
+    return category != null &&
+        (hiddenCategories.contains(category) ||
+            hiddenSubjectIds.contains(lesson.subjectKey));
+  }
+
+  FeedFilter withCategory(FeedCategory category, {required bool visible}) =>
+      FeedFilter(
+        hiddenCategories: {...hiddenCategories}
+          ..remove(category)
+          ..addAll(visible ? const [] : [category]),
+        hiddenSubjectIds: hiddenSubjectIds,
+      );
+
+  FeedFilter withSubject(String subjectId, {required bool visible}) =>
+      FeedFilter(
+        hiddenCategories: hiddenCategories,
+        hiddenSubjectIds: {...hiddenSubjectIds}
+          ..remove(subjectId)
+          ..addAll(visible ? const [] : [subjectId]),
+      );
+}
+
 class LessonStyleSettings {
   const LessonStyleSettings({
     this.lectureColorValue = 0xff2563eb,
@@ -73,6 +111,7 @@ class Lesson {
     required this.rooms,
     required this.teachers,
     this.reminderAt,
+    this.feedCategory,
   });
 
   final String id;
@@ -93,14 +132,38 @@ class Lesson {
   final List<Room> rooms;
   final List<Teacher> teachers;
   final DateTime? reminderAt;
+  final FeedCategory? feedCategory;
 
   Duration get duration => endTime.difference(startTime);
+  bool get isInstant => !endTime.isAfter(startTime);
   bool get isMandatory => kind == LessonKind.seminar;
   String get attendanceImportance => switch (kind) {
     LessonKind.seminar => 'Mandatory',
     LessonKind.lecture => 'Recommended',
     LessonKind.event => 'Informational',
   };
+
+  Lesson withFaculty(String facultyId) => Lesson(
+    id: id,
+    date: date,
+    startTime: startTime,
+    endTime: endTime,
+    subjectKey: subjectKey,
+    courseCode: courseCode,
+    seminarGroup: seminarGroup,
+    kind: kind,
+    priority: priority,
+    customColorValue: customColorValue,
+    courseName: courseName,
+    subjectId: subjectId,
+    faculty: facultyId,
+    timetableFacultyId: facultyId,
+    semester: semester,
+    rooms: rooms,
+    teachers: teachers,
+    reminderAt: reminderAt,
+    feedCategory: feedCategory,
+  );
 
   Lesson copyWithPresentation({
     LessonPriority? priority,
@@ -129,6 +192,7 @@ class Lesson {
     rooms: rooms,
     teachers: teachers,
     reminderAt: clearReminder ? null : reminderAt ?? this.reminderAt,
+    feedCategory: feedCategory,
   );
 }
 
@@ -149,12 +213,12 @@ class Subject {
   final String? faculty;
   final String notes;
 
-  Subject copyWith({String? notes}) => Subject(
+  Subject copyWith({String? notes, String? faculty}) => Subject(
     id: id,
     courseCode: courseCode,
     name: name,
     subjectId: subjectId,
-    faculty: faculty,
+    faculty: faculty ?? this.faculty,
     notes: notes ?? this.notes,
   );
 }
@@ -187,14 +251,18 @@ class Timetable {
   DateTime? get firstDate => lessons.isEmpty ? null : lessons.first.date;
   DateTime? get lastDate => lessons.isEmpty ? null : lessons.last.date;
 
-  Timetable copyWith({String? name}) => Timetable(
+  Timetable copyWith({
+    String? name,
+    List<Lesson>? lessons,
+    List<Subject>? subjects,
+  }) => Timetable(
     id: id,
     name: name ?? this.name,
     assignedFacultyId: assignedFacultyId,
     semester: semester,
     importedAt: importedAt,
-    lessons: lessons,
-    subjects: subjects,
+    lessons: lessons ?? this.lessons,
+    subjects: subjects ?? this.subjects,
     webcalUrl: webcalUrl,
     lastSyncedAt: lastSyncedAt,
   );

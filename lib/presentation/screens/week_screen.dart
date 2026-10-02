@@ -755,6 +755,8 @@ class _WeekBoardState extends State<WeekBoard> {
                         item.isImportantDate &&
                             item.importantDate!.timeMinute == null
                         ? context.strings.allDay
+                        : item.lesson?.isInstant ?? false
+                        ? timeLabel(item.start)
                         : '${timeLabel(item.start)} - ${timeLabel(item.end)}';
                     return ListTile(
                       leading: Icon(
@@ -862,7 +864,9 @@ class _WeekItem {
       exam = null,
       importantDate = null,
       start = value.startTime,
-      end = value.endTime;
+      end = value.isInstant
+          ? value.startTime.add(const Duration(minutes: 1))
+          : value.endTime;
 
   _WeekItem.forExam(Exam value)
     : lesson = null,

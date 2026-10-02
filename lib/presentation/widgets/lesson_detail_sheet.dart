@@ -94,7 +94,7 @@ class _LessonDetailsState extends ConsumerState<_LessonDetails> {
               _DetailRow(
                 icon: Icons.schedule_outlined,
                 value:
-                    '${dayLabel(context, lesson.date)}\n${timeLabel(lesson.startTime)} - ${timeLabel(lesson.endTime)}',
+                    '${dayLabel(context, lesson.date)}\n${lessonTimeLabel(lesson)}',
               ),
               if (lesson.rooms.isNotEmpty)
                 _DetailRow(

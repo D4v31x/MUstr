@@ -158,8 +158,10 @@ class _TodayScreenState extends State<TodayScreen> {
 
   Future<void> _pickDay() async {
     final timetable = widget.data.timetable!;
-    final firstDate = timetable.firstDate!;
-    final lastDate = timetable.lastDate!;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final firstDate = timetable.firstDate ?? today;
+    final lastDate = timetable.lastDate ?? today;
     final initialDate = _selectedDay.isBefore(firstDate)
         ? firstDate
         : _selectedDay.isAfter(lastDate)
@@ -530,7 +532,7 @@ class _LessonTile extends StatelessWidget {
                   ),
                   Text(
                     [
-                      '${timeLabel(lesson.startTime)} - ${timeLabel(lesson.endTime)}',
+                      lessonTimeLabel(lesson),
                       if (showRoom && lesson.rooms.isNotEmpty)
                         lesson.rooms.first.name,
                     ].join('  |  '),

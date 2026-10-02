@@ -71,8 +71,22 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     return _refresh();
   }
 
-  Future<PlannerData> importWebcal(String url, String facultyId) async {
-    final timetable = await _webcal.download(url, facultyId: facultyId);
+  Future<PlannerData> importWebcal(
+    String url,
+    String facultyId, {
+    void Function(WebcalImportProgress progress)? onProgress,
+  }) async {
+    final timetable = await _webcal.download(
+      url,
+      facultyId: facultyId,
+      onProgress: onProgress,
+    );
+    onProgress?.call(
+      WebcalImportProgress(
+        WebcalImportStage.saving,
+        eventCount: timetable.lessons.length,
+      ),
+    );
     await _repository.saveWebcalTimetable(timetable, facultyId);
     return _refresh();
   }
@@ -88,6 +102,19 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     }
     final synced = await _webcal.download(url, facultyId: facultyId);
     await _repository.syncWebcalTimetable(timetableId, synced);
+    return _refresh();
+  }
+
+  Future<PlannerData> saveEventFilter(FeedFilter filter) async {
+    await _repository.saveEventFilter(filter);
+    return _refresh();
+  }
+
+  Future<PlannerData> saveSubjectFaculty(
+    String subjectId,
+    String facultyId,
+  ) async {
+    await _repository.saveSubjectFaculty(subjectId, facultyId);
     return _refresh();
   }
 
@@ -384,12 +411,7 @@ class PlannerController extends AsyncNotifier<PlannerData> {
     final data = _currentData;
     final timetables = data.timetables
         .map(
-          (timetable) => Timetable(
-            id: timetable.id,
-            name: timetable.name,
-            assignedFacultyId: timetable.assignedFacultyId,
-            semester: timetable.semester,
-            importedAt: timetable.importedAt,
+          (timetable) => timetable.copyWith(
             lessons: timetable.lessons
                 .where((lesson) => lesson.subjectKey != subjectId)
                 .toList(),
@@ -520,18 +542,10 @@ class PlannerController extends AsyncNotifier<PlannerData> {
   List<Timetable> _replaceLesson(List<Timetable> timetables, Lesson lesson) =>
       timetables
           .map(
-            (timetable) => Timetable(
-              id: timetable.id,
-              name: timetable.name,
-              assignedFacultyId: timetable.assignedFacultyId,
-              semester: timetable.semester,
-              importedAt: timetable.importedAt,
+            (timetable) => timetable.copyWith(
               lessons: timetable.lessons
                   .map((item) => item.id == lesson.id ? lesson : item)
                   .toList(),
-              subjects: timetable.subjects,
-              webcalUrl: timetable.webcalUrl,
-              lastSyncedAt: timetable.lastSyncedAt,
             ),
           )
           .toList();
